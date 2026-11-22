@@ -1,13 +1,13 @@
 # UiPath Autofix
 
-When a UiPath Orchestrator job faults, this pipeline collects the evidence, decides whether the fault needs a code change, and has Claude Code diagnose it and, when the cause is clear, fix it. The result lands in that project's GitHub repo as a pull request, an issue, or just a note in the Actions run summary.
+When a UiPath Orchestrator job faults, this pipeline collects the evidence and asks **Jev (from TypeSafe AI)** whether the fault needs a code change and which Claude model should handle it. Claude Code then diagnoses the fault and, when the cause is clear, fixes it with the UiPath skills. The result lands in that project's GitHub repo as a pull request, an issue, or just a note in the Actions run summary.
 
 ```
 Orchestrator ── job.faulted webhook ──▶ Cloudflare Worker ── repository_dispatch ──▶ project repo
                                                                                         │
    GitHub Actions (reusable workflow)                                                   ▼
    1 triage   gather evidence with uip → Jev: skip | investigate | fix, Sonnet | Opus
-   2 claude   diagnose (uipath-troubleshoot) → apply the fix (uipath-rpa)
+   2 claude   diagnose (uipath-troubleshoot) → apply the fix (the matching UiPath skill)
    3 publish  check the patch → PR, issue, or a comment on the existing thread
 ```
 
@@ -15,7 +15,7 @@ Orchestrator ── job.faulted webhook ──▶ Cloudflare Worker ── repos
 
 1. **Worker** (`worker/`): receives the Orchestrator `job.faulted` webhook, verifies its signature, drops duplicate faults, maps the process to its GitHub repo and triggers that repo's workflow.
 2. **Triage** (`triage/`): logs in to UiPath with a read-only app and gathers the job, its logs and recent history. TypeSafe Jev then acts as the **triage** step (does this fault need intervention?) and the **model router** (Sonnet for small fixes, Opus for complex ones). A fault that already has an open PR or issue only gets a comment.
-3. **Claude Code**: runs in a job with no write access. It investigates with the `uip` CLI and the UiPath skills, and in fix mode edits the project source.
+3. **Claude Code**: runs in a job with no write access. It diagnoses the fault with the `uip` CLI and the `uipath-troubleshoot` skill. In fix mode it edits the project source using the UiPath skill that matches the project, such as `uipath-rpa` for XAML and coded workflows, `uipath-maestro-flow` for Maestro flows, or `uipath-agents` for agents. All the UiPath skills are installed, so any project type they cover can be fixed.
 4. **Publish**: the only job that can write. It checks the patch, then opens a PR or an issue, or comments on the existing one.
 
 Each UiPath project repo calls the reusable workflow (`.github/workflows/uipath-autofix.yml`) with a short caller (`templates/project-caller.yml`). The caller can also be run by hand for any job key, with the action and model overridden.
