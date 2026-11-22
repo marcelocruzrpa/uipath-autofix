@@ -1,0 +1,37 @@
+# Security and data handling
+
+## Data handling
+
+A fault sends Orchestrator data to three places. Decide whether that is acceptable for the processes you map before you turn the pipeline on.
+
+| Where | What | How long |
+|---|---|---|
+| TypeSafe (Jev) | A bounded state: the job's error text, up to 10 error log messages, the last 40 log lines, timings and machine name | Per TypeSafe's terms |
+| Anthropic (Claude) | Whatever the diagnosis reads: the captures below and the project source | Per Anthropic's terms |
+| GitHub | The `triage` artifact with the raw captures, the `investigation` and `autofix` artifacts, and the excerpts Claude quotes in the issue or PR | Artifacts 14 days; issues and PRs until deleted |
+
+- The raw captures are the job record (**including its input and output arguments**), up to 270 log rows, the job's state history, and 24 hours of job history for the process. Robot logs and arguments often hold business data.
+- Keep project repos private unless that data may be public: artifacts and issues are readable by everyone who can read the repo.
+- If arguments are sensitive, drop them from the capture by adding an `--output-filter` to the `jobs get` call in `scripts/gather-evidence.sh`.
+
+## Security model
+
+- **Webhook payloads are untrusted.**
+  - They only reach CI scripts through `env:`, never through `${{ }}` in `run:`.
+  - The job key and process key are validated before use.
+  - Prompts are rendered in Node, never through the shell.
+- **UiPath access is read-only.** The External Application has read-only scopes, so the model can run `uip` freely during diagnosis without being able to change Orchestrator. Those scopes are what bound the `uip` token: the model's file rules discourage reading the token file, but they are not an OS sandbox.
+- **Claude runs in a job with no write token** and a credential-less checkout.
+  - Its tools are an explicit allowlist (`--permission-mode dontAsk`). The only shell commands are `uip or` (Orchestrator) commands except `--export`, `uip traces spans get`, `uip docsai ask`, and `tee`/`mkdir` under `.local/investigations/`. The fix phase has no shell at all.
+  - File edits are confined to the checkout, and the paths `publish` refuses are already denied at the edit.
+  - Settings committed in the project repo are not loaded (`--setting-sources user`), and `ANTHROPIC_API_KEY` is stripped from the environment of the commands Claude runs (`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`).
+  - The saved `uip` login is deleted before the fix phase.
+- **The tool versions are frozen.** An npm pin alone does not hold for `uip`, which updates itself daily and loads tool packages from the nearest `node_modules/@uipath`. `scripts/install-tools.sh` freezes the version, installs the tools up front and makes `uip` load them from the global install only, so nothing is installed or loaded from the checkout while the model runs.
+- **Only `publish` can write, and it trusts nothing the Claude job produced.**
+  - It takes only the known files from that job's artifact, and keeps the triage decision only when its hash matches the one the triage job reported (`scripts/accept-artifacts.sh`).
+  - It stages the patch itself and judges what git actually staged, never the patch text (`scripts/stage-patch.sh`, `scripts/check-staged.mjs`). A patch can be written so that the paths git applies differ from the ones its headers show.
+  - Allowed: added, modified or deleted regular files of the listed types, within the size and count limits.
+  - Refused: `.github/`, agent and editor configuration (`.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json`, `.vscode/`, `NuGet.Config`), mode changes, symlinks, binaries, XML that is not well-formed or carries a DTD, invalid JSON, and added lines that look like a credential.
+- **The patch holds only what the fix phase edited.** The worktree is reset between diagnosis and fix, so files that `uip` or the investigation left behind cannot reach a PR.
+- **Everything published is scrubbed.** That covers PR and issue bodies, comments, titles, commit subjects and the run summary. Model-written text cannot render images, raw HTML or @-mentions, and anything that looks like a credential is redacted.
+- **The human gate is PR review.** UiPath Studio validation does not run in CI.

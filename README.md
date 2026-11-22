@@ -1,101 +1,69 @@
-# UiPath Jev Router
+# UiPath Autofix
 
-When a UiPath job faults, this pipeline uses **TypeSafe Jev as a router** to decide two things: whether the fault needs a fix at all, and if so, which Claude model should handle it. Claude Code then investigates with the UiPath CLI and the UiPath skills, and proposes the fix as a pull request.
+When a UiPath Orchestrator job faults, this pipeline collects the evidence, decides whether the fault needs a code change, and has Claude Code diagnose it and, when the cause is clear, fix it. The result lands in that project's GitHub repo as a pull request, an issue, or just a note in the Actions run summary.
 
 ```
-Orchestrator ──job.faulted webhook (HMAC)──▶ Cloudflare Worker (worker/)
-                                              verify signature · dedupe (KV) · map process → repo
-                                              └─▶ repository_dispatch "uipath-job-faulted"
-GitHub Actions: project repo → reusable workflow (.github/workflows/uipath-autofix.yml)
-  1 triage  : uip login → gather evidence → Jev (4 judgments) → policy → skip | investigate | fix, sonnet | opus
-              → is this fault already tracked by an open PR or issue?
-  2 claude  : (skipped when already tracked) install Claude Code + uip + UiPath skills
-              → diagnose (uipath-troubleshoot) → fix mode: apply (uipath-rpa conventions)
-  3 publish : re-check the patch (guard + XML/JSON) → PR with the patch, or an issue with the
-              diagnosis; a fault that is already tracked gets a comment on its thread
+Orchestrator ── job.faulted webhook ──▶ Cloudflare Worker ── repository_dispatch ──▶ project repo
+                                                                                        │
+   GitHub Actions (reusable workflow)                                                   ▼
+   1 triage   gather evidence with uip → Jev: skip | investigate | fix, Sonnet | Opus
+   2 claude   diagnose (uipath-troubleshoot) → apply the fix (uipath-rpa)
+   3 publish  check the patch → PR, issue, or a comment on the existing thread
 ```
 
-| Jev verdict | What happens |
+## How it works
+
+1. **Worker** (`worker/`): receives the Orchestrator `job.faulted` webhook, verifies its signature, drops duplicate faults, maps the process to its GitHub repo and triggers that repo's workflow.
+2. **Triage** (`triage/`): logs in to UiPath with a read-only app and gathers the job, its logs and recent history. TypeSafe Jev then acts as the **triage** step (does this fault need intervention?) and the **model router** (Sonnet for small fixes, Opus for complex ones). A fault that already has an open PR or issue only gets a comment.
+3. **Claude Code**: runs in a job with no write access. It investigates with the `uip` CLI and the UiPath skills, and in fix mode edits the project source.
+4. **Publish**: the only job that can write. It checks the patch, then opens a PR or an issue, or comments on the existing one.
+
+Each UiPath project repo calls the reusable workflow (`.github/workflows/uipath-autofix.yml`) with a short caller (`templates/project-caller.yml`). The caller can also be run by hand for any job key, with the action and model overridden.
+
+## Outcomes
+
+| Triage decision | What you get |
 |---|---|
-| No code fix needed (`needs_code_fix < 0.30`, not recurring) | **skip**: the routing table goes to the Actions run summary only, and no Claude tokens are spent |
-| Uncertain, or noise that keeps recurring | **investigate**: Claude diagnoses and opens an issue |
-| Code fix needed (`≥ 0.70`, category not noise) | **fix**: Claude diagnoses and applies the fix, and the workflow opens a PR |
-| Fix is complex, poorly localized, or Jev's complexity answer is diffuse | the work runs on **Opus**; otherwise it runs on **Sonnet** |
+| **skip**: no code fix needed | The routing table in the Actions run summary. Claude does not run. |
+| **investigate**: uncertain, or recurring noise | An issue with Claude's diagnosis |
+| **fix**: a code change is needed | A pull request with the fix and the diagnosis |
 
-## How Jev routes
-
-`triage/` builds a bounded JSON state from the Orchestrator evidence:
-- the job record and error logs
-- the tail of the robot log
-- the fault history over the last 24h
-- which workflows the error references, and whether they exist in this repo
-
-It asks Jev four questions in **one request** (`triage/src/questions.ts`):
-
-| Id | Primitive | Judgment |
-|---|---|---|
-| `fault_category` | Choice | automation_logic · ui_selector_drift · input_data · transient · infrastructure · external_system |
-| `needs_code_fix` | Noul | Does resolving this fault and preventing recurrence require changing the source? |
-| `fix_complexity` | Score 0–3 | one value → one workflow → several workflows → redesign or unclear |
-| `location_pinpointed` | Noul | Do the error logs identify the failing workflow file and activity? |
-
-`triage/src/policy.ts` is a pure function that turns those probabilities into the action and the model. All thresholds live in `triage/policy.config.json`. The Jev model is pinned to `jev-1.14.0`, and one triage costs a fraction of a cent. If Jev is unreachable (no connection, a timeout, a rate limit or a server error), triage falls back to **investigate + Sonnet**. A rejected key or a malformed request fails the run instead, so a misconfiguration cannot quietly bypass Jev.
+The thresholds and models are in `triage/policy.config.json`, and the questions Jev answers are in `triage/src/questions.ts`. If Jev can't be reached, triage falls back to investigate with Sonnet.
 
 ## Layout
 
 | Path | What |
 |---|---|
-| `worker/` | Cloudflare Worker that verifies the signature, dedupes, maps process → repo, and dispatches |
-| `triage/` | Jev router: evidence → state → questions → policy → decision, plus an eval harness and fixtures |
-| `scripts/` | CI steps: install tools, `uip` login, gather evidence, run Claude, guard the patch, publish; tests in `scripts/test/` |
-| `prompts/`, `schemas/` | Claude Code prompts and the structured-output schemas for diagnose and fix |
-| `.github/workflows/uipath-autofix.yml` | The reusable workflow that each project repo calls |
-| `templates/project-caller.yml` | The ~15-line workflow to drop into each UiPath project repo |
-| `docs/SETUP.md` | One-time setup: UiPath, Cloudflare, GitHub |
+| `worker/` | Cloudflare Worker: webhook → GitHub dispatch |
+| `triage/` | Evidence → Jev → decision, plus an eval harness and labeled fixtures |
+| `scripts/` | CI steps: install tools, log in, gather evidence, run Claude, check and publish the patch |
+| `prompts/`, `schemas/` | Claude Code prompts and output schemas for diagnose and fix |
+| `.github/workflows/uipath-autofix.yml` | The reusable workflow |
+| `templates/project-caller.yml` | The workflow to copy into each UiPath project repo |
+| `docs/` | `SETUP.md` (one-time setup) and `SECURITY.md` (security model and data handling) |
+
+## Setup
+
+See [docs/SETUP.md](docs/SETUP.md). It covers the toolkit repo, the UiPath External Application, the Cloudflare Worker, the Orchestrator webhook and each project repo.
 
 ## Develop
 
 ```bash
 npm install
-npm test                         # worker + triage unit tests, then the script tests (need bash and git; python3 or python for the XML checks)
+npm test            # unit and script tests (need bash and git; python3 or python for the XML checks)
 npm run typecheck
-TYPESAFE_API_KEY=... npm run eval -w triage -- --save eval/answers.json   # route the labeled fixtures through real Jev and record the answers
-npm run eval -w triage -- --replay eval/answers.json                      # re-run the policy on the recorded answers, no API calls
+TYPESAFE_API_KEY=... npm run eval -w triage -- --save eval/answers.json   # run the fixtures through Jev and record the answers
+npm run eval -w triage -- --replay eval/answers.json                      # re-run the policy on recorded answers, no API calls
 npm run build -w triage && node triage/dist/src/cli.js --evidence <raw dir> --project <repo> --dry-run
 ```
 
-## Data handling
+## Security and data
 
-A fault sends Orchestrator data to three places. Decide whether that is acceptable for the processes you map before you turn the pipeline on.
+- Webhook data is treated as untrusted input.
+- UiPath access is read-only.
+- Claude runs with no write token and an explicit tool allowlist.
+- Only the publish job can write, and it checks what git actually staged before opening a PR.
+- Everything published is scrubbed of credentials, and PR review is the human gate.
+- Fault data goes to TypeSafe, Anthropic and GitHub (artifacts are kept 14 days), so keep project repos private.
 
-| Where | What | How long |
-|---|---|---|
-| TypeSafe (Jev) | A bounded state: the job's error text, up to 10 error log messages, the last 40 log lines, timings and machine name | Per TypeSafe's terms |
-| Anthropic (Claude) | Whatever the diagnosis reads: the captures below and the project source | Per Anthropic's terms |
-| GitHub | The `triage` artifact with the raw captures, the `investigation` and `autofix` artifacts, and the excerpts Claude quotes in the issue or PR | Artifacts 14 days; issues and PRs until deleted |
-
-- The raw captures are the job record (**including its input and output arguments**), up to 270 log rows, the job's state history, and 24 hours of job history for the process. Robot logs and arguments often hold business data.
-- Keep project repos private unless that data may be public: artifacts and issues are readable by everyone who can read the repo.
-- If arguments are sensitive, drop them from the capture by adding an `--output-filter` to the `jobs get` call in `scripts/gather-evidence.sh`.
-
-## Security model
-
-- **Webhook payloads are untrusted.**
-  - They only reach CI scripts through `env:`, never through `${{ }}` in `run:`.
-  - The job key and process key are validated before use.
-  - Prompts are rendered in Node, never through the shell.
-- **UiPath access is read-only.** The External Application has read-only scopes, so the model can run `uip` freely during diagnosis without being able to change Orchestrator. Those scopes are what bound the `uip` token: the model's file rules discourage reading the token file, but they are not an OS sandbox.
-- **Claude runs in a job with no write token** and a credential-less checkout.
-  - Its tools are an explicit allowlist (`--permission-mode dontAsk`). The only shell commands are `uip or …`, two other read-only `uip` command families, and `tee`/`mkdir` under `.local/investigations/`. The fix phase has no shell at all.
-  - File edits are confined to the checkout, and the paths `publish` refuses are already denied at the edit.
-  - Settings committed in the project repo are not loaded (`--setting-sources user`), and `ANTHROPIC_API_KEY` is stripped from the environment of the commands Claude runs (`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`).
-  - The saved `uip` login is deleted before the fix phase.
-- **The tool versions are frozen.** An npm pin alone does not hold for `uip`, which updates itself daily and loads tool packages from the nearest `node_modules/@uipath`. `scripts/install-tools.sh` freezes the version, installs the tools up front and makes `uip` load them from the global install only, so nothing is installed or loaded from the checkout while the model runs.
-- **Only `publish` can write, and it trusts nothing the Claude job produced.**
-  - It takes only the known files from that job's artifact, and keeps the triage decision only when its hash matches the one the triage job reported (`scripts/accept-artifacts.sh`).
-  - It stages the patch itself and judges what git actually staged, never the patch text (`scripts/stage-patch.sh`, `scripts/check-staged.mjs`). A patch can be written so that the paths git applies differ from the ones its headers show.
-  - Allowed: added, modified or deleted regular files of the listed types, within the size and count limits.
-  - Refused: `.github/`, agent and editor configuration (`.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json`, `.vscode/`, `NuGet.Config`), mode changes, symlinks, binaries, XML that is not well-formed or carries a DTD, invalid JSON, and added lines that look like a credential.
-- **The patch holds only what the fix phase edited.** The worktree is reset between diagnosis and fix, so files that `uip` or the investigation left behind cannot reach a PR.
-- **Everything published is scrubbed.** That covers PR and issue bodies, comments, titles, commit subjects and the run summary. Model-written text cannot render images, raw HTML or @-mentions, and anything that looks like a credential is redacted.
-- **The human gate is PR review.** UiPath Studio validation does not run in CI.
+Details: [docs/SECURITY.md](docs/SECURITY.md).
