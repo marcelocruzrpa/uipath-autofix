@@ -24,15 +24,15 @@ on:
         description: Process name (Release.ProcessKey)
         required: true
       force_action:
-        description: Override Jev's action
+        description: Override Jev's action (auto = let Jev decide)
         type: choice
-        options: ["", skip, investigate, fix]
-        default: ""
+        options: [auto, skip, investigate, fix]
+        default: auto
       force_model:
-        description: Override Jev's model choice
+        description: Override Jev's model choice (auto = let Jev decide)
         type: choice
-        options: ["", sonnet, opus]
-        default: ""
+        options: [auto, sonnet, opus]
+        default: auto
 
 # One run per fault signature at a time; identical faults queue instead of racing.
 concurrency:
@@ -54,10 +54,17 @@ jobs:
       robot: ${{ github.event.client_payload.robot }}
       folder_id: ${{ format('{0}', github.event.client_payload.folder_id) }}
       orchestrator_url: ${{ github.event.client_payload.orchestrator_url }}
-      force_action: ${{ inputs.force_action }}
-      force_model: ${{ inputs.force_model }}
+      # "auto" (and a webhook run, which has no inputs) means no override.
+      force_action: ${{ inputs.force_action != 'auto' && inputs.force_action || '' }}
+      force_model: ${{ inputs.force_model != 'auto' && inputs.force_model || '' }}
       uipath_tenant: ${{ vars.UIPATH_TENANT }}
       uipath_authority: ${{ vars.UIPATH_AUTHORITY }}
       toolkit_repository: marcelocruzrpa/uipath-autofix
       toolkit_ref: v1
-    secrets: inherit
+    # Only what the toolkit needs, not every secret in this repo.
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+      UIPATH_CLIENT_ID: ${{ secrets.UIPATH_CLIENT_ID }}
+      UIPATH_CLIENT_SECRET: ${{ secrets.UIPATH_CLIENT_SECRET }}
+      TOOLKIT_TOKEN: ${{ secrets.TOOLKIT_TOKEN }}
