@@ -1,5 +1,5 @@
-import { type DispatchPayload, eventType, INFO_MAX, jobsOf, orchestratorJobUrl, processKeyOf, type UiPathWebhookEvent } from "./payload.js";
-import { faultSignature, verifySignature } from "./signature.js";
+import { type DispatchPayload, eventType, INFO_MAX, jobsOf, orchestratorJobUrl, processKeyOf, shapeOf, type UiPathWebhookEvent } from "./payload.js";
+import { describeSignature, faultSignature, verifySignature } from "./signature.js";
 
 export interface Env {
   /** Shared secret configured on the Orchestrator webhook (`--secret`). */
@@ -12,7 +12,8 @@ export interface Env {
   DEDUPE_TTL_SECONDS?: string;
   EVENT_TYPE?: string;
   ORCHESTRATOR_BASE_URL?: string;
-  LOG_RAW_PAYLOAD?: string;
+  /** "true" during setup: log the payload's key structure and the signature's encoding. */
+  LOG_PAYLOAD_SHAPE?: string;
 }
 
 type Outcome =
@@ -51,19 +52,21 @@ async function dispatch(env: Env, repo: string, payload: DispatchPayload): Promi
 
 async function handleWebhook(request: Request, env: Env): Promise<Response> {
   const raw = await request.arrayBuffer();
-  if (!(await verifySignature(env.UIPATH_WEBHOOK_SECRET, raw, request.headers.get("x-uipath-signature")))) {
+  const signatureHeader = request.headers.get("x-uipath-signature");
+  // Setup aid: logs how the signature is encoded and which keys the payload has. It never
+  // logs the signature, the body or any value in it.
+  const logShape = env.LOG_PAYLOAD_SHAPE === "true";
+  if (!(await verifySignature(env.UIPATH_WEBHOOK_SECRET, raw, signatureHeader))) {
+    if (logShape) console.log(`rejected delivery: signature header is ${describeSignature(signatureHeader)}`);
     return json({ error: "invalid signature" }, 401);
-  }
-  const text = new TextDecoder().decode(raw);
-  if (env.LOG_RAW_PAYLOAD === "true") {
-    console.log(`raw delivery headers=${JSON.stringify(Object.fromEntries(request.headers))} body=${text}`);
   }
   let ev: UiPathWebhookEvent;
   try {
-    ev = JSON.parse(text) as UiPathWebhookEvent;
+    ev = JSON.parse(new TextDecoder().decode(raw)) as UiPathWebhookEvent;
   } catch {
     return json({ error: "body is not JSON" }, 400);
   }
+  if (logShape) console.log(`delivery shape: signature ${describeSignature(signatureHeader)}; body ${JSON.stringify(shapeOf(ev))}`);
   const type = eventType(ev);
   if (type === "ping") return json({ ok: true, pong: true });
   if (type !== "job.faulted") return new Response(null, { status: 204 });

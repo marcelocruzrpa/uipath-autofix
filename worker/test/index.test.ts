@@ -190,6 +190,37 @@ describe("dedupe", () => {
   });
 });
 
+describe("setup logging", () => {
+  const logged = () => vi.mocked(console.log).mock.calls.map((c) => String(c[0]));
+
+  it("logs the payload's keys and the signature's encoding, never a value", async () => {
+    const body = faulted();
+    const text = JSON.stringify(body);
+    const signature = await sign(SECRET, text);
+    const res = await deliver(makeEnv({ LOG_PAYLOAD_SHAPE: "true" }), body, { signature });
+    expect(res.status).toBe(202);
+    const line = logged().find((l) => l.startsWith("delivery shape:"))!;
+    expect(line).toContain("signature hex, 64 chars");
+    expect(line).toContain('"Info":"string(');
+    expect(line).toContain('"ProcessKey":"string(10)"');
+    expect(line).toContain('"Id":"number"');
+    for (const secret of [signature, body.Job.Info, body.Job.Key, "ROBOT01", "InvoiceBot"]) expect(line).not.toContain(secret);
+  });
+
+  it("describes the encoding of a rejected signature without logging it or the body", async () => {
+    const bad = "sha256=" + "0".repeat(64);
+    const res = await deliver(makeEnv({ LOG_PAYLOAD_SHAPE: "true" }), faulted(), { signature: bad });
+    expect(res.status).toBe(401);
+    expect(logged()).toEqual(["rejected delivery: signature header is sha256= prefix, hex, 64 chars"]);
+  });
+
+  it("logs no shape unless the flag is on", async () => {
+    await deliver(makeEnv(), faulted());
+    await deliver(makeEnv(), faulted(), { signature: "nope" });
+    expect(logged().filter((l) => /shape|signature header/.test(l))).toEqual([]);
+  });
+});
+
 describe("fault signature", () => {
   it("ignores volatile tokens (ids, numbers, timestamps)", async () => {
     const a = await faultSignature("P", "Timeout after 30000 ms for job 3f1c2a9e-1111-4222-8333-444455556666 at 2026-11-21T10:00:00Z");

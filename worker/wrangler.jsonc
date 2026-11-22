@@ -12,8 +12,9 @@
     "EVENT_TYPE": "uipath-job-faulted",
     // For deep links in PRs/issues, e.g. https://cloud.uipath.com/<org>/<tenant>/orchestrator_
     "ORCHESTRATOR_BASE_URL": "",
-    // Set "true" during setup to log the first real delivery (headers + body), then turn off.
-    "LOG_RAW_PAYLOAD": "false"
+    // Set "true" during setup to log the shape of deliveries: the payload's keys with value
+    // types, and how the signature is encoded. No values are logged. Turn off afterwards.
+    "LOG_PAYLOAD_SHAPE": "false"
   },
   "kv_namespaces": [
     // Create with: npx wrangler kv namespace create DEDUPE  → paste the id here.

@@ -56,10 +56,10 @@ uip or webhooks create "Jev Autofix" \
 ```
 
 **Confirm the payload shape once:**
-1. Set `"LOG_RAW_PAYLOAD": "true"` in `wrangler.jsonc`, redeploy, and run `npx wrangler tail`.
-2. Make a test job fault.
-3. Check that the logged body has `Job.Key`, `Job.Info` and `Job.Release.ProcessKey`, and check which encoding the `x-uipath-signature` header uses. The Worker accepts hex or base64, with or without `sha256=`.
-4. Set `LOG_RAW_PAYLOAD` back to `"false"`.
+1. Set `"LOG_PAYLOAD_SHAPE": "true"` in `wrangler.jsonc`, redeploy, and run `npx wrangler tail`.
+2. Send a test delivery with `uip or webhooks ping <webhook-key>`, then make a test job fault.
+3. Read the logged shape. It lists the payload's keys with value types and no values, and it should include `Job.Key`, `Job.Info` and `Job.Release.ProcessKey`. It also says how the `x-uipath-signature` header is encoded. The Worker accepts hex or base64, with or without `sha256=`, and a rejected delivery logs the encoding it saw.
+4. Set `LOG_PAYLOAD_SHAPE` back to `"false"`.
 
 ## 5. Each UiPath project repo
 

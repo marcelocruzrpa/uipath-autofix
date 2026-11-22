@@ -1,8 +1,26 @@
 /**
  * UiPath Orchestrator webhook payloads (job events). Field casing is PascalCase in
  * Orchestrator's documented samples; we read defensively and confirm with the first real
- * delivery (LOG_RAW_PAYLOAD=true).
+ * delivery (LOG_PAYLOAD_SHAPE=true).
  */
+
+/**
+ * The key structure of a payload with value types only, for the setup log. Job `Info` and
+ * arguments can hold business data, so no value leaves the Worker through its logs.
+ */
+export function shapeOf(value: unknown, depth = 0): unknown {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return depth >= 6 ? "array" : [value.length ? shapeOf(value[0], depth + 1) : "empty"];
+  if (typeof value === "object") {
+    if (depth >= 6) return "object";
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .slice(0, 60)
+        .map(([k, v]) => [k.slice(0, 60), shapeOf(v, depth + 1)]),
+    );
+  }
+  return typeof value === "string" ? `string(${value.length})` : typeof value;
+}
 
 export interface UiPathJob {
   Id?: number;

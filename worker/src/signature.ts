@@ -34,10 +34,19 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   return diff === 0;
 }
 
+/** How a signature header is encoded, without its value: for the setup log. */
+export function describeSignature(header: string | null): string {
+  if (!header) return "missing";
+  const trimmed = header.trim();
+  const value = trimmed.replace(/^sha256=/i, "");
+  const encoding = /^[0-9a-f]{64}$/i.test(value) ? "hex" : base64ToBytes(value) ? "base64" : "unrecognised";
+  return `${value === trimmed ? "" : "sha256= prefix, "}${encoding}, ${value.length} chars`;
+}
+
 /**
  * Verify `X-UiPath-Signature` = HMAC-SHA256(secret, raw body).
  * Accepts hex or base64, with or without a `sha256=` prefix — the encoding is confirmed
- * from the first real delivery (LOG_RAW_PAYLOAD) and both forms are equally strong.
+ * from the first real delivery (LOG_PAYLOAD_SHAPE) and both forms are equally strong.
  */
 export async function verifySignature(secret: string, rawBody: ArrayBuffer, header: string | null): Promise<boolean> {
   if (!secret || !header) return false;
