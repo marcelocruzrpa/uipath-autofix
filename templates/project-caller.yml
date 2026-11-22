@@ -7,6 +7,10 @@
 # UIPATH_CLIENT_SECRET; variables UIPATH_TENANT (+ UIPATH_AUTHORITY when not on cloud.uipath.com);
 # Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests".
 name: UiPath autofix
+# Shown in the Actions run list, so each run names its process and job.
+run-name: >-
+  Autofix · ${{ github.event.client_payload.process_key || inputs.process_key }}
+  · ${{ github.event.client_payload.job_key || inputs.job_key }}
 
 on:
   repository_dispatch:

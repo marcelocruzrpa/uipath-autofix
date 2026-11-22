@@ -63,6 +63,20 @@ TYPESAFE_API_KEY=... npm run eval -w triage   # route the labeled fixtures throu
 npm run build -w triage && node triage/dist/src/cli.js --evidence <raw dir> --project <repo> --dry-run
 ```
 
+## Data handling
+
+A fault sends Orchestrator data to three places. Decide whether that is acceptable for the processes you map before you turn the pipeline on.
+
+| Where | What | How long |
+|---|---|---|
+| TypeSafe (Jev) | A bounded state: the job's error text, up to 10 error log messages, the last 40 log lines, timings and machine name | Per TypeSafe's terms |
+| Anthropic (Claude) | Whatever the diagnosis reads: the captures below and the project source | Per Anthropic's terms |
+| GitHub | The `triage` artifact with the raw captures, the `investigation` and `autofix` artifacts, and the excerpts Claude quotes in the issue or PR | Artifacts 14 days; issues and PRs until deleted |
+
+- The raw captures are the job record (**including its input and output arguments**), up to 270 log rows, the job's state history, and 24 hours of job history for the process. Robot logs and arguments often hold business data.
+- Keep project repos private unless that data may be public: artifacts and issues are readable by everyone who can read the repo.
+- If arguments are sensitive, drop them from the capture by adding an `--output-filter` to the `jobs get` call in `scripts/gather-evidence.sh`.
+
 ## Security model
 
 - **Webhook payloads are untrusted.**

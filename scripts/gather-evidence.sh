@@ -17,7 +17,9 @@ OUT="${1:?usage: gather-evidence.sh <out_dir>}"
 if [[ ! "$JOB_KEY" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
   echo "::error::JOB_KEY is not a GUID"; exit 1
 fi
-if [[ ! "$PROCESS_KEY" =~ ^[A-Za-z0-9][A-Za-z0-9\ ._-]{0,127}$ ]]; then
+# Letters and digits of any script ("Faturação" is a valid process name), plus space, dot,
+# underscore and hyphen. Checked in node: a bash character class depends on the locale.
+if ! node -e 'process.exit(/^[\p{L}\p{N}][\p{L}\p{N} ._-]{0,127}$/u.test(process.env.PROCESS_KEY ?? "") ? 0 : 1)'; then
   echo "::error::PROCESS_KEY has unexpected characters"; exit 1
 fi
 

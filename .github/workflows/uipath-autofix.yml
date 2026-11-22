@@ -70,11 +70,11 @@ jobs:
       fix_attempted: ${{ steps.existing.outputs.fix_attempted }}
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with: { path: project, persist-credentials: false }
 
       - name: Checkout toolkit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.toolkit_repository }}
           ref: ${{ inputs.toolkit_ref }}
@@ -82,7 +82,7 @@ jobs:
           path: toolkit
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 22 }
 
       - name: Build Jev triage
@@ -136,7 +136,7 @@ jobs:
           SIGNATURE: ${{ steps.jev.outputs.signature }}
 
       - name: Upload evidence and decision
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: triage
           path: |
@@ -177,11 +177,11 @@ jobs:
       ROUTING_REASON: ${{ needs.triage.outputs.reason }}
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with: { path: project, persist-credentials: false }
 
       - name: Checkout toolkit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.toolkit_repository }}
           ref: ${{ inputs.toolkit_ref }}
@@ -189,11 +189,11 @@ jobs:
           path: toolkit
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 22 }
 
       - name: Restore evidence and decision
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with: { name: triage, path: project }
 
       - name: Keep CI scratch out of git
@@ -249,7 +249,7 @@ jobs:
 
       - name: Upload autofix artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: autofix
           path: project/.autofix/
@@ -258,7 +258,7 @@ jobs:
 
       - name: Upload investigation notes
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: investigation
           path: project/.local/investigations/
@@ -278,11 +278,11 @@ jobs:
       issues: write
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with: { path: project }
 
       - name: Checkout toolkit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.toolkit_repository }}
           ref: ${{ inputs.toolkit_ref }}
@@ -290,11 +290,11 @@ jobs:
           path: toolkit
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with: { node-version: 22 }
 
       - name: Restore triage decision
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with: { name: triage, path: project }
 
@@ -302,7 +302,7 @@ jobs:
       # and only the files this job knows how to judge are taken over. It also holds that
       # job's copy of decision.json, which must not replace the triage job's.
       - name: Restore autofix artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with: { name: autofix, path: autofix-in }
 
