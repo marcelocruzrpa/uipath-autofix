@@ -39,7 +39,7 @@ It asks Jev four questions in **one request** (`triage/src/questions.ts`):
 | `fix_complexity` | Score 0–3 | one value → one workflow → several workflows → redesign or unclear |
 | `location_pinpointed` | Noul | Do the error logs identify the failing workflow file and activity? |
 
-`triage/src/policy.ts` is a pure function that turns those probabilities into the action and the model. All thresholds live in `triage/policy.config.json`. The Jev model is pinned to `jev-1.14.0`, and one triage costs a fraction of a cent. If Jev is unreachable, triage falls back to **investigate + Sonnet**.
+`triage/src/policy.ts` is a pure function that turns those probabilities into the action and the model. All thresholds live in `triage/policy.config.json`. The Jev model is pinned to `jev-1.14.0`, and one triage costs a fraction of a cent. If Jev is unreachable (no connection, a timeout, a rate limit or a server error), triage falls back to **investigate + Sonnet**. A rejected key or a malformed request fails the run instead, so a misconfiguration cannot quietly bypass Jev.
 
 ## Layout
 

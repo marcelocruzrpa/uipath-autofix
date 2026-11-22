@@ -25,7 +25,6 @@ on:
       force_action: { type: string, default: "", description: "Override Jev: skip | investigate | fix" }
       force_model: { type: string, default: "", description: "Override Jev: sonnet | opus" }
       uipath_tenant: { type: string, required: true }
-      uipath_org: { type: string, default: "" }
       uipath_authority: { type: string, default: "" }
       toolkit_repository: { type: string, default: "your-github-owner/uipath-jev-router" }
       toolkit_ref: { type: string, default: "v1" }
@@ -43,7 +42,6 @@ env:
   PROCESS_KEY: ${{ inputs.process_key }}
   ORCHESTRATOR_URL: ${{ inputs.orchestrator_url }}
   UIPATH_TENANT: ${{ inputs.uipath_tenant }}
-  UIPATH_ORG: ${{ inputs.uipath_org }}
   UIPATH_AUTHORITY: ${{ inputs.uipath_authority }}
   TOOLKIT_DIR: ${{ github.workspace }}/toolkit
   # Neither CLI updates itself mid-run: the pins in scripts/install-tools.sh stay the pins.
@@ -69,6 +67,7 @@ jobs:
       signature: ${{ steps.jev.outputs.signature }}
       decision_sha256: ${{ steps.jev.outputs.decision_sha256 }}
       existing: ${{ steps.existing.outputs.existing }}
+      fix_attempted: ${{ steps.existing.outputs.fix_attempted }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
@@ -122,8 +121,10 @@ jobs:
           FORCE_ACTION: ${{ inputs.force_action }}
           FORCE_MODEL: ${{ inputs.force_model }}
 
-      # A fault that already has an open PR or issue only gets a comment (publish posts it),
-      # so an unresolved fault does not pay for a new Claude run every time it recurs.
+      # A fault that is already tracked only gets a comment (publish posts it), so an
+      # unresolved fault does not pay for a new Claude run every time it recurs. Tracked
+      # means an open PR or issue, or a fix PR merged in the last days: until the fixed
+      # package is deployed, the same fault keeps arriving.
       - name: Is this fault already tracked?
         id: existing
         if: steps.jev.outputs.action == 'investigate' || steps.jev.outputs.action == 'fix'
@@ -147,10 +148,18 @@ jobs:
   claude:
     name: Claude ${{ needs.triage.outputs.tier }} · ${{ needs.triage.outputs.action }}
     needs: triage
-    # Skipped when the fault is already tracked, unless the run was forced by hand.
+    # Skipped when the fault is already tracked, unless the run was forced by hand. One
+    # exception: an issue that only holds a diagnosis does not block a later `fix` decision.
+    # That fix is attempted once, and `publish` then labels the issue so it is not repeated.
     if: >-
       (needs.triage.outputs.action == 'investigate' || needs.triage.outputs.action == 'fix')
-      && (needs.triage.outputs.existing == '' || inputs.force_action != '')
+      && (
+        inputs.force_action != ''
+        || needs.triage.outputs.existing == ''
+        || (needs.triage.outputs.action == 'fix'
+            && startsWith(needs.triage.outputs.existing, 'issue:')
+            && needs.triage.outputs.fix_attempted != 'true')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:

@@ -4,7 +4,7 @@ import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { parseArgs } from "node:util";
 import { loadEvidence, scanRepo } from "./evidence.js";
-import { askJev, buildRequest, type JevResult, loadConfig } from "./jev.js";
+import { askJev, buildRequest, isJevOutage, type JevResult, loadConfig } from "./jev.js";
 import { type Action, type Decision, decide, fallbackDecision, type Overrides, type Tier } from "./policy.js";
 import { faultSignature } from "./signature.js";
 import { buildState, faultInfo } from "./state.js";
@@ -82,10 +82,17 @@ async function main() {
     console.error(`[jev] model=${jev.model} input_tokens=${jev.usage.input_tokens ?? "?"}`);
   } catch (e) {
     const raw = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
-    console.error(`[jev] call failed, applying fallback policy: ${raw}`);
-    // The message lands in the run summary and in PR/issue bodies, and an API error can
-    // echo parts of the request, so keep it short and free of Markdown and HTML.
+    // The message lands in the run log, the summary and PR/issue bodies, and an API error
+    // can echo parts of the request, so keep it short and free of Markdown and HTML.
     const msg = raw.replace(/[<>`[\]|@]/g, " ").replace(/\s+/g, " ").trim().slice(0, 300);
+    if (!isJevOutage(e)) {
+      // Not an outage: a missing or rejected key, an unknown model, a bad request. Stop
+      // here rather than route every fault to Claude without ever asking Jev.
+      console.log(`::error title=Jev triage is misconfigured::${msg}`);
+      console.error("[jev] the request cannot succeed as configured; check TYPESAFE_API_KEY and triage/policy.config.json");
+      process.exit(1);
+    }
+    console.log(`::warning title=Jev unavailable, fallback policy applied::${msg}`);
     decision = fallbackDecision(cfg, msg, overrides);
   }
 

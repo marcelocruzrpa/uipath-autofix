@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { type EntryType, TypeSafeClient } from "@typesafe-ai/sdk";
+import { APIConnectionError, APIError, type EntryType, TypeSafeClient } from "@typesafe-ai/sdk";
 import type { JevAnswers, PolicyConfig } from "./policy.js";
 import { questions } from "./questions.js";
 import type { JevState } from "./state.js";
@@ -23,6 +23,18 @@ export async function askJev(state: JevState, cfg: PolicyConfig, client = new Ty
     { timeout: 60_000 },
   );
   return { model: res.model, answers: res.answers as unknown as JevAnswers, usage: res.usage };
+}
+
+/**
+ * Whether a failed Jev call is an outage worth falling back from: no connection, a timeout,
+ * a rate limit or a server error, each after the SDK's own retries. Everything else is a
+ * mistake on our side (a missing or rejected key, an unknown model, a malformed request,
+ * an answer the policy cannot read). Falling back on those would quietly turn every fault
+ * into a Claude run while Jev is never asked, so the caller fails the step instead.
+ */
+export function isJevOutage(e: unknown): boolean {
+  if (e instanceof APIConnectionError) return true; // includes APITimeoutError
+  return e instanceof APIError && (e.status === 408 || e.status === 429 || e.status >= 500);
 }
 
 /** policy.config.json lives at triage/ root; resolve it from src/ (tests) or dist/src/ (built). */

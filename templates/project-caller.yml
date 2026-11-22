@@ -4,7 +4,7 @@
 # faulted job for this project, or manually (workflow_dispatch) to replay any job key.
 #
 # Repo setup: secrets ANTHROPIC_API_KEY, TYPESAFE_API_KEY, UIPATH_CLIENT_ID,
-# UIPATH_CLIENT_SECRET; variables UIPATH_TENANT (+ optional UIPATH_ORG, UIPATH_AUTHORITY);
+# UIPATH_CLIENT_SECRET; variables UIPATH_TENANT (+ UIPATH_AUTHORITY when not on cloud.uipath.com);
 # Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests".
 name: UiPath autofix
 
@@ -53,7 +53,6 @@ jobs:
       force_action: ${{ inputs.force_action }}
       force_model: ${{ inputs.force_model }}
       uipath_tenant: ${{ vars.UIPATH_TENANT }}
-      uipath_org: ${{ vars.UIPATH_ORG }}
       uipath_authority: ${{ vars.UIPATH_AUTHORITY }}
       toolkit_repository: your-github-owner/uipath-jev-router
       toolkit_ref: v1

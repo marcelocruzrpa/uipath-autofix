@@ -65,8 +65,8 @@ uip or webhooks create "Jev Autofix" \
 
 1. Copy `templates/project-caller.yml` to `.github/workflows/uipath-autofix.yml`.
 2. **Secrets:** `ANTHROPIC_API_KEY`, `TYPESAFE_API_KEY`, `UIPATH_CLIENT_ID`, `UIPATH_CLIENT_SECRET`, plus `TOOLKIT_TOKEN` if the toolkit is private. Organization-level secrets work too.
-3. **Variables:** `UIPATH_TENANT`, plus `UIPATH_AUTHORITY` if you are not on `cloud.uipath.com`, and optionally `UIPATH_ORG`.
-4. **Settings → Actions → General:** enable *Allow GitHub Actions to create and approve pull requests*.
+3. **Variables:** `UIPATH_TENANT`, plus `UIPATH_AUTHORITY` if you are not on `cloud.uipath.com`. There is no organization variable: for an external application the organization is fixed by its App ID.
+4. **Settings → Actions → General:** enable *Allow GitHub Actions to create and approve pull requests*. If it is off, a validated fix is still pushed to its branch and reported in an issue that links to it, so you can open the pull request by hand.
 
 ## 6. Tune and test
 
@@ -90,4 +90,7 @@ uip or webhooks create "Jev Autofix" \
 - **Jev:** about 2–4k input tokens per fault at $0.042 per million tokens, which is a fraction of a cent.
 - **Claude:** per-model turn and dollar caps are in `policy.config.json`. Sonnet defaults to 40 turns and $3, Opus to 60 turns and $10. The caps apply to each phase, and a fix run has two (diagnose, then fix), so the ceiling for one fault is $6 on Sonnet and $20 on Opus. The PR or issue shows the actual cost.
 - **Orchestrator:** 7 API calls per fault, against a tenant budget of 100 per minute. The pipeline never uses `jobs logs --export`, which has a quota of 100 per day.
-- **Dedupe:** identical faults (same process and normalized error) dispatch at most once per `DEDUPE_TTL_SECONDS`, which defaults to 1h. After that, a new occurrence that already has an open PR or issue only adds a comment to it, with Jev's routing line and no new Claude run. To get a fresh diagnosis, close the thread first, or run the workflow by hand with `force_action` set.
+- **Dedupe:** identical faults (same process and normalized error) dispatch at most once per `DEDUPE_TTL_SECONDS`, which defaults to 1h. After that, an occurrence that is already tracked only adds a comment, with Jev's routing line and no new Claude run.
+  - Tracked means an open PR, an open issue, or a fix PR merged in the last 7 days. The fault keeps recurring until the fixed package is deployed, and a new diagnosis of already-fixed source would be paid for nothing.
+  - One exception: when the open thread is an issue that only holds a diagnosis and Jev now says `fix`, the fix is attempted once. The issue then gets the `uipath-autofix:fix-attempted` label and is not retried.
+  - To get a fresh diagnosis, close the thread first, or run the workflow by hand with `force_action` set.

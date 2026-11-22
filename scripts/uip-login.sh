@@ -3,8 +3,9 @@
 # Secrets are read by the CLI itself via env.<NAME>, so they never appear on a command line.
 #   required: UIPATH_CLIENT_ID, UIPATH_CLIENT_SECRET, UIPATH_TENANT
 #   optional: UIPATH_AUTHORITY (e.g. https://cloud.uipath.com, or staging/Automation Suite host)
-#             UIPATH_ORG       (organization logical name)
 #             UIPATH_SCOPES    (application scopes; default is the read-only set below)
+# The organization is not an input: for a client-credentials login it is fixed by the
+# external application, and uip ignores --organization.
 set -euo pipefail
 
 : "${UIPATH_CLIENT_ID:?UIPATH_CLIENT_ID secret is not set}"
@@ -17,7 +18,6 @@ SCOPES="${UIPATH_SCOPES:-OR.Jobs.Read OR.Folders.Read OR.Execution.Read OR.Monit
 
 args=(login --client-id env.UIPATH_CLIENT_ID --client-secret env.UIPATH_CLIENT_SECRET --tenant "$UIPATH_TENANT" --scope "$SCOPES" --output json)
 [[ -n "${UIPATH_AUTHORITY:-}" ]] && args+=(--authority "$UIPATH_AUTHORITY")
-[[ -n "${UIPATH_ORG:-}" ]] && args+=(--organization "$UIPATH_ORG")
 
 if ! out="$(uip "${args[@]}" 2>&1)"; then
   echo "::error::uip login failed. Check the External Application id/secret, its application scopes ($SCOPES), the tenant name and UIPATH_AUTHORITY."

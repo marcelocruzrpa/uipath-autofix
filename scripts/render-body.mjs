@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Render what is published from the .autofix/ artifacts.
-//   usage: render-body.mjs pr|issue|comment|title|diagnosis-summary <autofix_dir>
+//   usage: render-body.mjs pr|issue|comment|comment-merged|title|diagnosis-summary <autofix_dir>
 //     pr, issue, comment   the Markdown body
+//     comment-merged       the comment for a fix PR that is already merged
 //     title                one plain line for the PR/issue title and the commit subject
 //     diagnosis-summary    Markdown for the Actions run summary
 //   env:   SIGNATURE, RUN_URL, JOB_KEY, PROCESS_KEY, ORCHESTRATOR_URL, TIER
@@ -56,8 +57,14 @@ if (kind === "diagnosis-summary") {
 const lines = [];
 const out = (s = "") => lines.push(s);
 
-if (kind === "comment") {
-  out(`🔁 **Seen again:** job ${jobLink} faulted with the same error signature \`${sig}\`.`);
+if (kind === "comment" || kind === "comment-merged") {
+  if (kind === "comment") {
+    out(`🔁 **Seen again:** job ${jobLink} faulted with the same error signature \`${sig}\`.`);
+  } else {
+    // On a fix PR that is already merged: the fault recurs until the fixed package is deployed.
+    out(`🔁 **Seen again after this fix was merged:** job ${jobLink} faulted with the same error signature \`${sig}\`.`);
+    out("Check that the package built from this fix is published and deployed to the folder that runs the process. No new diagnosis was started.");
+  }
   if (decision) out(`Jev: ${text(decision.reason)}`);
   if (dx?.root_cause) out(`Latest diagnosis (${text(dx.confidence)}): ${text(dx.root_cause)}`);
   out(`Run: ${e.RUN_URL}`);
