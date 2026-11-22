@@ -9,7 +9,8 @@
 #   job's artifact, stages the patch itself and judges what git actually staged, and keeps
 #   the triage decision only when it matches the hash the triage job reported.
 # - The UiPath External Application has read-only scopes.
-# - A fault that already has an open PR or issue gets a comment, not another Claude run.
+# - A fault that is already tracked (an open PR or issue, or a fix merged in the last days)
+#   gets a comment, not another Claude run.
 name: UiPath autofix
 
 on:
