@@ -12,9 +12,10 @@
     },
     "job": { "Key": "a1000000-0000-4000-8000-000000000009", "State": "Faulted", "Source": "Schedule", "RuntimeType": "Unattended", "StartTime": "2026-11-21T05:00:00Z", "EndTime": "2026-11-21T05:14:51Z", "HostMachineName": "ROBOT02" },
     "errorLogs": [],
+    "fatalLogs": [],
     "logs": [
-      { "Level": "Info", "TimeStamp": "2026-11-21T05:00:03Z", "FileName": "Main", "Message": "InvoiceBot execution started" },
-      { "Level": "Info", "TimeStamp": "2026-11-21T05:14:40Z", "FileName": "ExtractInvoice", "Message": "Processing batch of 412 documents" }
+      { "Level": "Info", "TimeStamp": "2026-11-21T05:00:03Z", "Message": "InvoiceBot execution started" },
+      { "Level": "Info", "TimeStamp": "2026-11-21T05:14:40Z", "Message": "Processing batch of 412 documents" }
     ],
     "recentFaults": [
       { "Key": "f9a", "State": "Faulted", "CreationTime": "2026-11-20T17:00:00Z", "Info": "Job stopped with an unexpected exit code: 0xE0434352" }

@@ -6,6 +6,24 @@ import type { DerivedFacts } from "./state.js";
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 const bar = (n: number) => "█".repeat(Math.round(n * 10)).padEnd(10, "░");
 
+/** A value that came from robot logs, kept on one line and inside its code span. */
+const span = (s: string) => `\`${s.replace(/`/g, "'").replace(/\s+/g, " ").trim().slice(0, 120) || "?"}\``;
+
+/**
+ * The job link goes into a Markdown link, so the URL must not be able to end the link
+ * early: https only, no whitespace, quotes or angle brackets, and balanced parentheses
+ * (Orchestrator's own deep links contain a pair).
+ */
+export function safeUrl(url: string | undefined | null): string | null {
+  if (!url || !/^https:\/\/[^\s<>"'`\\]{1,500}$/.test(url)) return null;
+  let depth = 0;
+  for (const c of url) {
+    if (c === "(") depth++;
+    else if (c === ")" && --depth < 0) return null;
+  }
+  return depth === 0 ? url : null;
+}
+
 const ACTION_LABEL: Record<Decision["action"], string> = {
   skip: "⏭️ **skip**: no code change needed",
   investigate: "🔎 **investigate**: diagnosis only (opens an issue)",
@@ -27,7 +45,8 @@ export function renderSummary(args: {
   lines.push("");
   lines.push(`${ACTION_LABEL[d.action]}${d.action === "skip" ? "" : `, using **${d.tier}** (\`${d.model}\`, ≤${d.max_turns} turns, ≤$${d.budget_usd})`}`);
   lines.push("");
-  lines.push(`- Job: ${args.orchestratorUrl ? `[\`${args.jobKey}\`](${args.orchestratorUrl})` : `\`${args.jobKey}\``}`);
+  const jobUrl = safeUrl(args.orchestratorUrl);
+  lines.push(`- Job: ${jobUrl ? `[\`${args.jobKey}\`](${jobUrl})` : `\`${args.jobKey}\``}`);
   lines.push(`- Action rule: ${d.action_rule}`);
   if (d.action !== "skip") lines.push(`- Model rule: ${d.tier_rule}`);
   if (d.overridden) lines.push("- ⚠️ The decision was overridden by a workflow input.");
@@ -38,8 +57,16 @@ export function renderSummary(args: {
   if (facts.referenced_workflows.length)
     lines.push(
       // Names come from robot logs: keep each one inside its code span.
-      `- Referenced workflows: ${facts.referenced_workflows.map((w) => `\`${w.replace(/`/g, "'")}\``).join(", ")}${facts.referenced_workflows_found_in_repo === false ? " (⚠️ not found in this repo)" : ""}`,
+      `- Referenced workflows: ${facts.referenced_workflows.map(span).join(", ")}${facts.referenced_workflows_found_in_repo === false ? " (⚠️ not found in this repo)" : ""}`,
     );
+  if (facts.failing_activity && facts.workflow_match !== "none") {
+    const files = facts.workflow_match_files.map(span).join(", ");
+    lines.push(
+      facts.workflow_match === "unique"
+        ? `- Failing activity: ${span(facts.failing_activity)}, found in ${files}`
+        : `- Failing activity: ${span(facts.failing_activity)}, a name used in several workflows (${files})`,
+    );
+  }
   if (jev) {
     const a = jev.answers;
     lines.push("");

@@ -12,12 +12,13 @@
     },
     "job": { "Key": "a1000000-0000-4000-8000-000000000005", "State": "Faulted", "Source": "Schedule", "RuntimeType": "Unattended", "StartTime": "2026-11-21T03:00:00Z", "EndTime": "2026-11-21T03:01:45Z", "HostMachineName": "ROBOT01" },
     "errorLogs": [
-      { "Level": "Error", "TimeStamp": "2026-11-21T03:01:44Z", "FileName": "PostToERP", "Message": "HTTP Request 'POST invoice': The operation has timed out after 100000 ms (retry 3 of 3)." }
+      { "Level": "Error", "TimeStamp": "2026-11-21T03:01:44Z", "Message": "HTTP Request 'POST invoice': The operation has timed out after 100000 ms (retry 3 of 3)." }
     ],
+    "fatalLogs": [],
     "logs": [
-      { "Level": "Warn", "TimeStamp": "2026-11-21T03:00:40Z", "FileName": "PostToERP", "Message": "ERP responded slowly (retry 1 of 3)" },
-      { "Level": "Warn", "TimeStamp": "2026-11-21T03:01:10Z", "FileName": "PostToERP", "Message": "ERP responded slowly (retry 2 of 3)" },
-      { "Level": "Error", "TimeStamp": "2026-11-21T03:01:44Z", "FileName": "PostToERP", "Message": "HTTP Request 'POST invoice': The operation has timed out after 100000 ms (retry 3 of 3)." }
+      { "Level": "Warn", "TimeStamp": "2026-11-21T03:00:40Z", "Message": "ERP responded slowly (retry 1 of 3)" },
+      { "Level": "Warn", "TimeStamp": "2026-11-21T03:01:10Z", "Message": "ERP responded slowly (retry 2 of 3)" },
+      { "Level": "Error", "TimeStamp": "2026-11-21T03:01:44Z", "Message": "HTTP Request 'POST invoice': The operation has timed out after 100000 ms (retry 3 of 3)." }
     ],
     "recentFaults": [],
     "recentSuccess": [{ "Key": "s5", "State": "Successful", "CreationTime": "2026-11-21T04:00:00Z", "EndTime": "2026-11-21T04:02:00Z" }]

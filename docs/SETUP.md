@@ -89,5 +89,5 @@ uip or webhooks create "Jev Autofix" \
 
 - **Jev:** about 2–4k input tokens per fault at $0.042 per million tokens, which is a fraction of a cent.
 - **Claude:** per-model turn and dollar caps are in `policy.config.json`. Sonnet defaults to 40 turns and $3, Opus to 60 turns and $10. The caps apply to each phase, and a fix run has two (diagnose, then fix), so the ceiling for one fault is $6 on Sonnet and $20 on Opus. The PR or issue shows the actual cost.
-- **Orchestrator:** about 6 API calls per fault, against a tenant budget of 100 per minute. The pipeline never uses `jobs logs --export`, which has a quota of 100 per day.
+- **Orchestrator:** 7 API calls per fault, against a tenant budget of 100 per minute. The pipeline never uses `jobs logs --export`, which has a quota of 100 per day.
 - **Dedupe:** identical faults (same process and normalized error) dispatch at most once per `DEDUPE_TTL_SECONDS`, which defaults to 1h. After that, a new occurrence that already has an open PR or issue only adds a comment to it, with Jev's routing line and no new Claude run. To get a fresh diagnosis, close the thread first, or run the workflow by hand with `force_action` set.

@@ -1,13 +1,21 @@
-import { type Evidence, type JobSummary, type LogEntry, type RepoFacts, referencedWorkflows } from "./evidence.js";
+import { type Evidence, type JobSummary, locateFailingActivity, type LogEntry, type RepoFacts, referencedWorkflows, type WorkflowMatch } from "./evidence.js";
 import { normalizeInfo } from "./signature.js";
 
-/** Facts computed in code. They go into Jev's state and are also consumed by the policy. */
+/**
+ * Facts computed in code. The history and repository facts go into Jev's state; all of them
+ * are available to the policy and shown in the run summary.
+ */
 export interface DerivedFacts {
   faulted_runs_last_24h: number;
   same_error_runs_last_24h: number;
   last_successful_run_at: string | null;
   referenced_workflows: string[];
   referenced_workflows_found_in_repo: boolean | null;
+  /** The display name the error text leads with, when it names an activity in this repo. */
+  failing_activity: string | null;
+  /** Whether that display name occurs in no, exactly one, or several workflow files. */
+  workflow_match: WorkflowMatch;
+  workflow_match_files: string[];
 }
 
 export interface JevState {
@@ -26,7 +34,7 @@ export interface JevState {
   };
   error_logs: { at: string | null; level: string; file: string | null; message: string }[];
   recent_log_tail: string[];
-  history: Omit<DerivedFacts, "referenced_workflows" | "referenced_workflows_found_in_repo">;
+  history: Pick<DerivedFacts, "faulted_runs_last_24h" | "same_error_runs_last_24h" | "last_successful_run_at">;
   repository: {
     project_found: boolean;
     workflow_file_count: number;
@@ -103,12 +111,16 @@ export function deriveFacts(ev: Evidence, repo: RepoFacts, now: Date): DerivedFa
   const refs = referencedWorkflows(ev);
   const repoBasenames = new Set(repo.workflow_files.map((f) => f.split("/").at(-1)!.toLowerCase()));
   const found = refs.length === 0 || !repo.project_found ? null : refs.some((r) => repoBasenames.has(r.toLowerCase()));
+  const located = locateFailingActivity(ev, repo);
   return {
     faulted_runs_last_24h: others.length,
     same_error_runs_last_24h: sameError,
     last_successful_run_at: lastSuccess ?? null,
     referenced_workflows: refs,
     referenced_workflows_found_in_repo: found,
+    failing_activity: located.activity,
+    workflow_match: located.match,
+    workflow_match_files: located.files,
   };
 }
 
@@ -126,8 +138,11 @@ export function buildState(ev: Evidence, repo: RepoFacts, now: Date = new Date()
   const byTime = (a: LogEntry, b: LogEntry) => (a.at ?? "").localeCompare(b.at ?? "");
   const logs = [...ev.logs].sort(byTime);
   const errorLogs = (ev.errorLogs.length ? [...ev.errorLogs] : logs.filter((l) => /^(error|fatal)$/i.test(l.level))).sort(byTime);
+  // `uip or jobs get` has no folder name (only its id and key), but the job's own row in
+  // the faulted list does.
+  const ownRow = ev.recentFaults.find((j) => j.key === ev.context.job_key);
   const state: JevState = {
-    process: { name: ev.context.process_key, folder: s(job["OrganizationUnitFullyQualifiedName"]) },
+    process: { name: ev.context.process_key, folder: ownRow?.folder ?? s(job["OrganizationUnitFullyQualifiedName"]) },
     job: {
       key: ev.context.job_key,
       state: s(job["State"]) ?? "Faulted",
@@ -137,7 +152,8 @@ export function buildState(ev: Evidence, repo: RepoFacts, now: Date = new Date()
       started_at: started,
       ended_at: ended,
       duration_seconds: durationSeconds(started, ended),
-      robot: ev.context.robot ?? s(job["RobotName"]),
+      // From the webhook only: the job record names the machine, not the robot.
+      robot: ev.context.robot ?? null,
       host_machine: s(job["HostMachineName"]),
     },
     error_logs: errorLogs.slice(-LIMITS.errorLogs).map((l) => ({

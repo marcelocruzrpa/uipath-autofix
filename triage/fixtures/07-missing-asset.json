@@ -12,11 +12,12 @@
     },
     "job": { "Key": "a1000000-0000-4000-8000-000000000007", "State": "Faulted", "Source": "Schedule", "RuntimeType": "Unattended", "StartTime": "2026-11-21T11:30:00Z", "EndTime": "2026-11-21T11:30:09Z", "HostMachineName": "ROBOT01" },
     "errorLogs": [
-      { "Level": "Error", "TimeStamp": "2026-11-21T11:30:08Z", "FileName": "InitAllSettings", "Message": "Get Credential 'ERP login': Could not find an asset with this name. Asset name: ERP_Credential (#1002)" }
+      { "Level": "Error", "TimeStamp": "2026-11-21T11:30:08Z", "Message": "Get Credential 'ERP login': Could not find an asset with this name. Asset name: ERP_Credential (#1002)" }
     ],
+    "fatalLogs": [],
     "logs": [
-      { "Level": "Info", "TimeStamp": "2026-11-21T11:30:02Z", "FileName": "InitAllSettings", "Message": "Loading Orchestrator assets" },
-      { "Level": "Error", "TimeStamp": "2026-11-21T11:30:08Z", "FileName": "InitAllSettings", "Message": "Get Credential 'ERP login': Could not find an asset with this name." }
+      { "Level": "Info", "TimeStamp": "2026-11-21T11:30:02Z", "Message": "Loading Orchestrator assets" },
+      { "Level": "Error", "TimeStamp": "2026-11-21T11:30:08Z", "Message": "Get Credential 'ERP login': Could not find an asset with this name." }
     ],
     "recentFaults": [],
     "recentSuccess": [{ "Key": "s7", "State": "Successful", "CreationTime": "2026-11-21T10:30:00Z", "EndTime": "2026-11-21T10:31:00Z" }]

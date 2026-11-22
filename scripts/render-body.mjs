@@ -12,7 +12,7 @@
 // and nothing is assumed about its type.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { code, list, num, obj, redact, text, titleLine } from "./lib/scrub.mjs";
+import { code, list, num, obj, redact, safeUrl, text, titleLine } from "./lib/scrub.mjs";
 
 const [, , kind, dir = ".autofix"] = process.argv;
 const read = (f) => {
@@ -33,7 +33,9 @@ const fixRun = obj(read("fix-run.json"));
 const validation = read("validation.txt");
 const e = process.env;
 const sig = e.SIGNATURE || "";
-const jobLink = e.ORCHESTRATOR_URL ? `[\`${e.JOB_KEY}\`](${e.ORCHESTRATOR_URL})` : `\`${e.JOB_KEY}\``;
+// The URL arrives with the webhook payload, so it is checked before it goes into a link.
+const jobUrl = safeUrl(e.ORCHESTRATOR_URL);
+const jobLink = jobUrl ? `[\`${e.JOB_KEY}\`](${jobUrl})` : `\`${e.JOB_KEY}\``;
 const decision = obj(triage?.decision);
 const emit = (s) => process.stdout.write(redact(s));
 

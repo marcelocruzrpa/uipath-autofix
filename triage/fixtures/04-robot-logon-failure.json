@@ -12,6 +12,7 @@
     },
     "job": { "Key": "a1000000-0000-4000-8000-000000000004", "State": "Faulted", "Source": "Schedule", "RuntimeType": "Unattended", "StartTime": "2026-11-21T11:00:00Z", "EndTime": "2026-11-21T11:00:03Z", "HostMachineName": "ROBOT03" },
     "errorLogs": [],
+    "fatalLogs": [],
     "logs": [],
     "recentFaults": [],
     "recentSuccess": [{ "Key": "s4", "State": "Successful", "CreationTime": "2026-11-21T10:00:00Z", "EndTime": "2026-11-21T10:02:00Z" }]

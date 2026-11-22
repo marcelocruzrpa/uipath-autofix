@@ -5,7 +5,7 @@
 #          FOLDER_ID, ORCHESTRATOR_URL (optional, from the webhook payload)
 #
 # Files are verbatim `--output json` captures named after the command, which is the
-# layout the uipath-troubleshoot skill reuses instead of re-fetching. ~6 API calls per
+# layout the uipath-troubleshoot skill reuses instead of re-fetching. 7 API calls per
 # fault, well inside the 100 req/min tenant budget; never uses `logs --export` (100/day).
 set -uo pipefail
 
@@ -51,16 +51,32 @@ SINCE="$(node -e 'console.log(new Date(Date.now() - 24 * 3600e3).toISOString())'
 
 # --no-download: `jobs get` otherwise saves the job's OutputFile into the current directory.
 cap jobs-get             or jobs get "$JOB_KEY" --no-download
+# --level is an exact match, so Error does not include Fatal. Rows carry only Level,
+# TimeStamp and Message: the CLI does not return the workflow file name.
 cap jobs-logs-error      or jobs logs "$JOB_KEY" --level Error --limit 50
+cap jobs-logs-fatal      or jobs logs "$JOB_KEY" --level Fatal --limit 20
 cap jobs-logs            or jobs logs "$JOB_KEY" --limit 200
 cap jobs-history         or jobs history "$JOB_KEY"
-# --process-name is a "contains" match, so the lists can include similarly named processes.
+
+# --process-name filters on the process (release) name, which is not always the package id
+# the webhook sends as PROCESS_KEY: a process can be renamed. The job record has the name.
+PROCESS_NAME="$(node -e '
+  try {
+    const j = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const name = (j.Data ?? j).ReleaseName;
+    if (typeof name === "string" && name.length <= 256 && !/[\u0000-\u001f]/.test(name)) process.stdout.write(name);
+  } catch {}
+' "$OUT/jobs-get.json" 2>/dev/null)"
+NAME_FILTER="${PROCESS_NAME:-$PROCESS_KEY}"
+
+# The filter is a "contains" match, so the lists can include similarly named processes.
 # Each row carries its process name (ProcessName in the curated output, ReleaseName with
-# --all-fields) and triage keeps only the rows of this exact process.
-cap jobs-list-faulted    or jobs list --all-folders --process-name "$PROCESS_KEY" --state Faulted \
+# --all-fields) and triage keeps only the rows of this exact process. The faulted rows
+# also carry the folder name, which `jobs get` does not have.
+cap jobs-list-faulted    or jobs list --all-folders --process-name "$NAME_FILTER" --state Faulted \
                             --created-after "$SINCE" --limit 50 --all-fields \
-                            --output-filter "[].{Key: Key, State: State, Info: Info, ProcessName: ProcessName, ReleaseName: ReleaseName, CreationTime: CreationTime, EndTime: EndTime}"
-cap jobs-list-successful or jobs list --all-folders --process-name "$PROCESS_KEY" --state Successful \
+                            --output-filter "[].{Key: Key, State: State, Info: Info, ProcessName: ProcessName, ReleaseName: ReleaseName, Folder: OrganizationUnitFullyQualifiedName, CreationTime: CreationTime, EndTime: EndTime}"
+cap jobs-list-successful or jobs list --all-folders --process-name "$NAME_FILTER" --state Successful \
                             --limit 10 --sort-by "EndTime desc" \
                             --output-filter "[].{Key: Key, State: State, ProcessName: ProcessName, ReleaseName: ReleaseName, CreationTime: CreationTime, EndTime: EndTime}"
 

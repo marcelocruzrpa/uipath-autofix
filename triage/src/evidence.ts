@@ -10,6 +10,7 @@ export const EVIDENCE_FILES = {
   context: "context.json",
   job: "jobs-get.json",
   errorLogs: "jobs-logs-error.json",
+  fatalLogs: "jobs-logs-fatal.json",
   logs: "jobs-logs.json",
   history: "jobs-history.json",
   recentFaults: "jobs-list-faulted.json",
@@ -32,6 +33,7 @@ export interface LogEntry {
   level: string;
   at: string | null;
   message: string;
+  /** Null for `uip or jobs logs` rows: the CLI returns only Level, TimeStamp and Message. */
   file: string | null;
 }
 
@@ -41,6 +43,8 @@ export interface JobSummary {
   info: string;
   /** Process (release) name of the job, or null when the capture does not carry it. */
   process: string | null;
+  /** Fully qualified folder name, or null when the capture does not carry it. */
+  folder: string | null;
   created_at: string | null;
   ended_at: string | null;
 }
@@ -48,6 +52,7 @@ export interface JobSummary {
 export interface Evidence {
   context: FaultContext;
   job: Json | null;
+  /** Error and Fatal rows: `--level` is an exact match, so they arrive as two captures. */
   errorLogs: LogEntry[];
   logs: LogEntry[];
   history: Json[];
@@ -59,6 +64,17 @@ export interface Evidence {
 export interface RepoFacts {
   project_found: boolean;
   workflow_files: string[];
+  /** Activity display name → the workflow files that contain an activity with that name. */
+  activities?: Record<string, string[]>;
+}
+
+export type WorkflowMatch = "none" | "unique" | "ambiguous";
+
+/** Where the failing activity lives in the checked-out project, found by its display name. */
+export interface ActivityLocation {
+  activity: string | null;
+  match: WorkflowMatch;
+  files: string[];
 }
 
 /** uip wraps every response as {Result, Code, Data, Pagination?}; fixtures may also be bare. */
@@ -81,7 +97,11 @@ function str(v: unknown): string {
   return typeof v === "string" ? v : JSON.stringify(v);
 }
 
-/** Orchestrator RobotLogs entry → LogEntry. RawMessage is a JSON string carrying fileName. */
+/**
+ * A log row → LogEntry. `uip or jobs logs` returns {Level, TimeStamp, Message}. The raw
+ * Orchestrator RobotLogs shape is accepted too: its RawMessage is a JSON string that carries
+ * the workflow's fileName.
+ */
 export function toLogEntry(raw: Json): LogEntry {
   let file: string | null = null;
   let message = str(pick(raw, "Message", "message"));
@@ -113,6 +133,8 @@ function toJobSummary(raw: Json): JobSummary {
     info: str(pick(raw, "Info")),
     // `uip or jobs list` names it ProcessName in its curated rows and ReleaseName with --all-fields.
     process: str(pick(raw, "ProcessName", "ReleaseName")) || null,
+    // Only the list rows carry the folder name; `uip or jobs get` has just its id and key.
+    folder: str(pick(raw, "Folder", "OrganizationUnitFullyQualifiedName")) || null,
     created_at: (pick(raw, "CreationTime") as string | undefined) ?? null,
     ended_at: (pick(raw, "EndTime") as string | undefined) ?? null,
   };
@@ -144,7 +166,7 @@ export function evidenceFromRaw(raw: Partial<Record<keyof typeof EVIDENCE_FILES,
   return {
     context,
     job: job && typeof job === "object" && !Array.isArray(job) ? (job as Json) : null,
-    errorLogs: asArray(get("errorLogs")).map(toLogEntry),
+    errorLogs: [...asArray(get("errorLogs")), ...asArray(get("fatalLogs"))].map(toLogEntry),
     logs: asArray(get("logs")).map(toLogEntry),
     history: asArray(get("history")),
     recentFaults: asArray(get("recentFaults")).map(toJobSummary),
@@ -169,14 +191,52 @@ export function loadEvidence(dir: string): Evidence {
 }
 
 const SKIP_DIRS = new Set([".git", ".local", ".autofix", "node_modules", ".objects", ".settings", ".tmh", ".entities"]);
+const MAX_WORKFLOW_FILES = 2000;
+const MAX_XAML_BYTES = 4_000_000;
+const MAX_ACTIVITY_NAMES = 20_000;
 
-/** List workflow source files (.xaml / .cs) in the checked-out project, relative paths. */
+const XML_ENTITIES: Record<string, string> = { quot: '"', apos: "'", amp: "&", lt: "<", gt: ">" };
+
+function xmlUnescape(s: string): string {
+  return s.replace(/&(#x[0-9a-fA-F]{1,6}|#\d{1,7}|quot|apos|amp|lt|gt);/g, (_, e: string) => {
+    if (e.startsWith("#")) {
+      const n = e[1] === "x" ? Number.parseInt(e.slice(2), 16) : Number.parseInt(e.slice(1), 10);
+      return n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : "";
+    }
+    return XML_ENTITIES[e] ?? "";
+  });
+}
+
+/**
+ * List workflow source files (.xaml / .cs) in the checked-out project, relative paths, and
+ * index the activity display names each XAML file contains.
+ */
 export function scanRepo(projectDir: string | undefined): RepoFacts {
   if (!projectDir || !existsSync(projectDir)) return { project_found: false, workflow_files: [] };
   const out: string[] = [];
+  const activities = new Map<string, Set<string>>();
   let projectJson = false;
+  const indexActivities = (full: string, rel: string, size: number) => {
+    if (size > MAX_XAML_BYTES) return;
+    let content: string;
+    try {
+      content = readFileSync(full, "utf8");
+    } catch {
+      return;
+    }
+    for (const m of content.matchAll(/\bDisplayName="([^"]{1,300})"/g)) {
+      const name = xmlUnescape(m[1]!).trim();
+      if (!name) continue;
+      let files = activities.get(name);
+      if (!files) {
+        if (activities.size >= MAX_ACTIVITY_NAMES) continue;
+        activities.set(name, (files = new Set()));
+      }
+      files.add(rel);
+    }
+  };
   const walk = (dir: string, rel: string, depth: number) => {
-    if (depth > 8 || out.length > 2000) return;
+    if (depth > 8 || out.length > MAX_WORKFLOW_FILES) return;
     for (const name of readdirSync(dir)) {
       if (SKIP_DIRS.has(name)) continue;
       const full = join(dir, name);
@@ -189,18 +249,36 @@ export function scanRepo(projectDir: string | undefined): RepoFacts {
       }
       if (st.isDirectory()) walk(full, r, depth + 1);
       else if (name === "project.json") projectJson = true;
-      else if (/\.(xaml|cs)$/i.test(name)) out.push(r);
+      else if (/\.(xaml|cs)$/i.test(name)) {
+        out.push(r);
+        if (/\.xaml$/i.test(name)) indexActivities(full, r, st.size);
+      }
     }
   };
   walk(projectDir, "", 0);
-  return { project_found: projectJson, workflow_files: out.sort() };
+  return {
+    project_found: projectJson,
+    workflow_files: out.sort(),
+    activities: Object.fromEntries([...activities].map(([name, files]) => [name, [...files].sort()])),
+  };
 }
+
+/**
+ * A workflow file name as it may be compared and shown: one line, letters and digits of
+ * any script, and nothing that could act as Markdown or HTML. Names come from robot logs.
+ */
+const safeName = (n: string) =>
+  n
+    .replace(/[^\p{L}\p{N}_ .\-()[\]]/gu, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 
 /** Workflow file names referenced by the fault (log fileName fields and *.xaml mentions). */
 export function referencedWorkflows(ev: Evidence): string[] {
   const names = new Set<string>();
   const add = (n: string) => {
-    const b = basename(n.replace(/\\/g, "/")).trim();
+    const b = safeName(basename(n.replace(/\\/g, "/")));
     if (b) names.add(/\.(xaml|cs)$/i.test(b) ? b : `${b}.xaml`);
   };
   for (const l of ev.errorLogs) if (l.file) add(l.file);
@@ -212,4 +290,36 @@ export function referencedWorkflows(ev: Evidence): string[] {
     .slice(0, 100_000);
   for (const m of text.matchAll(/[\w\-.\\/]{1,160}\.(?:xaml|cs)\b/gi)) add(m[0]);
   return [...names].slice(0, 20);
+}
+
+/**
+ * UiPath reports a faulted activity as "<display name>: <message>". Each candidate is the
+ * text before the first ": " of the job's Info or of an error log message. Most are real
+ * display names; an exception class name can appear too and simply matches nothing.
+ */
+export function failingActivityCandidates(ev: Evidence): string[] {
+  const texts = [ev.context.info ?? "", str(ev.job?.["Info"]), ...ev.errorLogs.slice(-20).map((l) => l.message)];
+  const names = new Set<string>();
+  for (const t of texts) {
+    const m = /^\s*([^\r\n]{1,200}?): /.exec(t);
+    const name = m?.[1]?.trim();
+    if (name) names.add(name);
+  }
+  return [...names].slice(0, 10);
+}
+
+/**
+ * Find the failing activity's workflow file in the checkout by its display name. Log rows
+ * carry no file name, so this lookup is the only locator. Default names such as "Assign"
+ * occur in many files, hence the three outcomes rather than a file.
+ */
+export function locateFailingActivity(ev: Evidence, repo: RepoFacts): ActivityLocation {
+  const index = repo.activities ?? {};
+  let ambiguous: ActivityLocation | null = null;
+  for (const name of failingActivityCandidates(ev)) {
+    const files = Object.hasOwn(index, name) ? (index[name] ?? []) : [];
+    if (files.length === 1) return { activity: name, match: "unique", files: [...files] };
+    if (files.length > 1 && !ambiguous) ambiguous = { activity: name, match: "ambiguous", files: files.slice(0, 5) };
+  }
+  return ambiguous ?? { activity: null, match: "none", files: [] };
 }

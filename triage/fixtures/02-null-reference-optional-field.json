@@ -12,12 +12,13 @@
     },
     "job": { "Key": "a1000000-0000-4000-8000-000000000002", "State": "Faulted", "Source": "Queue", "RuntimeType": "Unattended", "StartTime": "2026-11-21T10:01:00Z", "EndTime": "2026-11-21T10:01:44Z", "HostMachineName": "ROBOT02" },
     "errorLogs": [
-      { "Level": "Error", "TimeStamp": "2026-11-21T10:01:43Z", "FileName": "ExtractInvoice", "Message": "Assign 'Set poNumber': Object reference not set to an instance of an object. Expression: invoiceData(\"PONumber\").ToString.Trim" }
+      { "Level": "Error", "TimeStamp": "2026-11-21T10:01:43Z", "Message": "Assign 'Set poNumber': Object reference not set to an instance of an object. Expression: invoiceData(\"PONumber\").ToString.Trim" }
     ],
+    "fatalLogs": [],
     "logs": [
-      { "Level": "Info", "TimeStamp": "2026-11-21T10:01:02Z", "FileName": "Main", "Message": "Processing transaction INV-55012" },
-      { "Level": "Info", "TimeStamp": "2026-11-21T10:01:40Z", "FileName": "ExtractInvoice", "Message": "Extracted 7 of 8 fields; field PONumber not present on document" },
-      { "Level": "Error", "TimeStamp": "2026-11-21T10:01:43Z", "FileName": "ExtractInvoice", "Message": "Assign 'Set poNumber': Object reference not set to an instance of an object." }
+      { "Level": "Info", "TimeStamp": "2026-11-21T10:01:02Z", "Message": "Processing transaction INV-55012" },
+      { "Level": "Info", "TimeStamp": "2026-11-21T10:01:40Z", "Message": "Extracted 7 of 8 fields; field PONumber not present on document" },
+      { "Level": "Error", "TimeStamp": "2026-11-21T10:01:43Z", "Message": "Assign 'Set poNumber': Object reference not set to an instance of an object." }
     ],
     "recentFaults": [
       { "Key": "f-old-1", "State": "Faulted", "CreationTime": "2026-11-21T06:00:00Z", "Info": "Assign 'Set poNumber': Object reference not set to an instance of an object.\r\nSystem.NullReferenceException: Object reference not set to an instance of an object.\r\n   at lambda_method(Closure , ActivityContext )\r\n   at ExtractInvoice.xaml: Assign 'Set poNumber' (poNumber = invoiceData(\"PONumber\").ToString.Trim)" }

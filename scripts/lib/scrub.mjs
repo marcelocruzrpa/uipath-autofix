@@ -65,6 +65,21 @@ export function titleLine(s, max = 72) {
     .trim();
 }
 
+/**
+ * A URL that is safe inside a Markdown link, or null: https only, no whitespace, quotes or
+ * angle brackets, and balanced parentheses (Orchestrator's own deep links contain a pair),
+ * so it cannot end the link early. Mirrors safeUrl in triage/src/summary.ts.
+ */
+export function safeUrl(url) {
+  if (typeof url !== "string" || !/^https:\/\/[^\s<>"'`\\]{1,500}$/.test(url)) return null;
+  let depth = 0;
+  for (const c of url) {
+    if (c === "(") depth++;
+    else if (c === ")" && --depth < 0) return null;
+  }
+  return depth === 0 ? url : null;
+}
+
 /** A finite number, or null: artifact fields are not trusted to have the expected type. */
 export const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 

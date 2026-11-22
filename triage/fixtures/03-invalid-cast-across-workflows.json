@@ -12,13 +12,14 @@
     },
     "job": { "Key": "a1000000-0000-4000-8000-000000000003", "State": "Faulted", "Source": "Schedule", "RuntimeType": "Unattended", "StartTime": "2026-11-21T08:00:00Z", "EndTime": "2026-11-21T08:00:31Z", "HostMachineName": "ROBOT01" },
     "errorLogs": [
-      { "Level": "Warn", "TimeStamp": "2026-11-21T08:00:29Z", "FileName": "CalculateTax", "Message": "Implicit conversion of in_Amount from String to Decimal" },
-      { "Level": "Error", "TimeStamp": "2026-11-21T08:00:30Z", "FileName": "Main", "Message": "Invoke Workflow File 'PostToERP': Unable to cast object of type 'System.String' to type 'System.Int32'. Argument: in_Amount" }
+      { "Level": "Warn", "TimeStamp": "2026-11-21T08:00:29Z", "Message": "Implicit conversion of in_Amount from String to Decimal" },
+      { "Level": "Error", "TimeStamp": "2026-11-21T08:00:30Z", "Message": "Invoke Workflow File 'PostToERP': Unable to cast object of type 'System.String' to type 'System.Int32'. Argument: in_Amount" }
     ],
+    "fatalLogs": [],
     "logs": [
-      { "Level": "Info", "TimeStamp": "2026-11-21T08:00:02Z", "FileName": "Main", "Message": "InvoiceBot 2.0.0 execution started" },
-      { "Level": "Info", "TimeStamp": "2026-11-21T08:00:20Z", "FileName": "ExtractInvoice", "Message": "Extracted amount '1,250.00'" },
-      { "Level": "Error", "TimeStamp": "2026-11-21T08:00:30Z", "FileName": "Main", "Message": "Invoke Workflow File 'PostToERP': Unable to cast object of type 'System.String' to type 'System.Int32'." }
+      { "Level": "Info", "TimeStamp": "2026-11-21T08:00:02Z", "Message": "InvoiceBot 2.0.0 execution started" },
+      { "Level": "Info", "TimeStamp": "2026-11-21T08:00:20Z", "Message": "Extracted amount '1,250.00'" },
+      { "Level": "Error", "TimeStamp": "2026-11-21T08:00:30Z", "Message": "Invoke Workflow File 'PostToERP': Unable to cast object of type 'System.String' to type 'System.Int32'." }
     ],
     "recentFaults": [
       { "Key": "f3a", "State": "Faulted", "CreationTime": "2026-11-21T07:00:00Z", "Info": "Invoke Workflow File 'PostToERP': Unable to cast object of type 'System.String' to type 'System.Int32'.\r\nSystem.InvalidCastException\r\n   at UiPath.Core.Activities.InvokeWorkflowFile" }

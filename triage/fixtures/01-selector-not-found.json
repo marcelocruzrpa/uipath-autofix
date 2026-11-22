@@ -12,13 +12,14 @@
     },
     "job": { "Key": "a1000000-0000-4000-8000-000000000001", "State": "Faulted", "Source": "Schedule", "RuntimeType": "Unattended", "StartTime": "2026-11-21T11:57:10Z", "EndTime": "2026-11-21T11:58:05Z", "HostMachineName": "ROBOT01" },
     "errorLogs": [
-      { "Level": "Error", "TimeStamp": "2026-11-21T11:58:04Z", "FileName": "SubmitInvoice", "Message": "Click 'Submit invoice': Could not find the user-interface (UI) element for this action. Selector: <webctrl id='btnSubmit' tag='BUTTON' />. The closest match found: <webctrl id='submit-invoice-btn' tag='BUTTON' aaname='Submit invoice' />" }
+      { "Level": "Error", "TimeStamp": "2026-11-21T11:58:04Z", "Message": "Click 'Submit invoice': Could not find the user-interface (UI) element for this action. Selector: <webctrl id='btnSubmit' tag='BUTTON' />. The closest match found: <webctrl id='submit-invoice-btn' tag='BUTTON' aaname='Submit invoice' />" }
     ],
+    "fatalLogs": [],
     "logs": [
-      { "Level": "Info", "TimeStamp": "2026-11-21T11:57:12Z", "FileName": "Main", "Message": "InvoiceBot execution started" },
-      { "Level": "Info", "TimeStamp": "2026-11-21T11:57:30Z", "FileName": "Login", "Message": "Logged in to vendor portal" },
-      { "Level": "Info", "TimeStamp": "2026-11-21T11:57:41Z", "FileName": "SubmitInvoice", "Message": "Filling invoice INV-20931 form" },
-      { "Level": "Error", "TimeStamp": "2026-11-21T11:58:04Z", "FileName": "SubmitInvoice", "Message": "Click 'Submit invoice': Could not find the user-interface (UI) element for this action." }
+      { "Level": "Info", "TimeStamp": "2026-11-21T11:57:12Z", "Message": "InvoiceBot execution started" },
+      { "Level": "Info", "TimeStamp": "2026-11-21T11:57:30Z", "Message": "Logged in to vendor portal" },
+      { "Level": "Info", "TimeStamp": "2026-11-21T11:57:41Z", "Message": "Filling invoice INV-20931 form" },
+      { "Level": "Error", "TimeStamp": "2026-11-21T11:58:04Z", "Message": "Click 'Submit invoice': Could not find the user-interface (UI) element for this action." }
     ],
     "recentFaults": [],
     "recentSuccess": [{ "Key": "s1", "State": "Successful", "CreationTime": "2026-11-20T11:57:00Z", "EndTime": "2026-11-20T11:59:00Z" }]

@@ -12,11 +12,12 @@
     },
     "job": { "Key": "a1000000-0000-4000-8000-000000000006", "State": "Faulted", "Source": "Manual", "RuntimeType": "Unattended", "StartTime": "2026-11-21T09:30:00Z", "EndTime": "2026-11-21T09:30:20Z", "HostMachineName": "ROBOT02" },
     "errorLogs": [
-      { "Level": "Error", "TimeStamp": "2026-11-21T09:30:19Z", "FileName": "ValidateInvoice", "Message": "Throw 'Approval limit exceeded': BusinessRuleException: Invoice INV-77120 amount 48,900.00 EUR exceeds the approval limit of 25,000.00 EUR." }
+      { "Level": "Error", "TimeStamp": "2026-11-21T09:30:19Z", "Message": "Throw 'Approval limit exceeded': BusinessRuleException: Invoice INV-77120 amount 48,900.00 EUR exceeds the approval limit of 25,000.00 EUR." }
     ],
+    "fatalLogs": [],
     "logs": [
-      { "Level": "Info", "TimeStamp": "2026-11-21T09:30:05Z", "FileName": "ValidateInvoice", "Message": "Validating invoice INV-77120 against approval matrix" },
-      { "Level": "Error", "TimeStamp": "2026-11-21T09:30:19Z", "FileName": "ValidateInvoice", "Message": "Throw 'Approval limit exceeded': BusinessRuleException" }
+      { "Level": "Info", "TimeStamp": "2026-11-21T09:30:05Z", "Message": "Validating invoice INV-77120 against approval matrix" },
+      { "Level": "Error", "TimeStamp": "2026-11-21T09:30:19Z", "Message": "Throw 'Approval limit exceeded': BusinessRuleException" }
     ],
     "recentFaults": [],
     "recentSuccess": [{ "Key": "s6", "State": "Successful", "CreationTime": "2026-11-21T09:00:00Z", "EndTime": "2026-11-21T09:02:00Z" }]
