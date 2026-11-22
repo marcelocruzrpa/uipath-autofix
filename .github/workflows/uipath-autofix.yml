@@ -5,8 +5,9 @@
 # - Values from the webhook (job key, Info text, ...) arrive as inputs and only ever reach
 #   scripts through `env:`, never through `${{ }}` inside `run:`.
 # - Claude runs in a job whose GITHUB_TOKEN is read-only and whose checkout has no stored
-#   credentials; only the `publish` job can write, and it re-runs the patch guard and the
-#   file checks itself instead of trusting the verdict of the job that hosts the model.
+#   credentials; only the `publish` job can write. It takes only known files from that
+#   job's artifact, stages the patch itself and judges what git actually staged, and keeps
+#   the triage decision only when it matches the hash the triage job reported.
 # - The UiPath External Application has read-only scopes.
 # - A fault that already has an open PR or issue gets a comment, not another Claude run.
 name: UiPath autofix
@@ -64,6 +65,7 @@ jobs:
       budget_usd: ${{ steps.jev.outputs.budget_usd }}
       reason: ${{ steps.jev.outputs.reason }}
       signature: ${{ steps.jev.outputs.signature }}
+      decision_sha256: ${{ steps.jev.outputs.decision_sha256 }}
       existing: ${{ steps.existing.outputs.existing }}
     steps:
       - name: Checkout project
@@ -223,16 +225,11 @@ jobs:
         working-directory: project
         run: bash "$TOOLKIT_DIR/scripts/collect-patch.sh"
 
+      # Model-written text: rendered with the same scrub and redaction as PR and issue bodies.
       - name: Diagnosis summary
         if: always()
         working-directory: project
-        run: |
-          node -e '
-            const fs = require("fs");
-            let d; try { d = JSON.parse(fs.readFileSync(".autofix/diagnose.json", "utf8")); } catch { console.log("no structured diagnosis"); process.exit(0); }
-            const s = `### Claude diagnosis (${process.env.TIER})\n\n**${d.confidence}** · code fix: **${d.is_code_fix}**\n\n${String(d.root_cause).replace(/@/g, "@​")}\n`;
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, s);
-          '
+        run: node "$TOOLKIT_DIR/scripts/render-body.mjs" diagnosis-summary .autofix >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload autofix artifacts
         if: always()
@@ -285,10 +282,18 @@ jobs:
         continue-on-error: true
         with: { name: triage, path: project }
 
+      # The claude job's artifact is untrusted as a whole, so it lands outside the checkout
+      # and only the files this job knows how to judge are taken over. It also holds that
+      # job's copy of decision.json, which must not replace the triage job's.
       - name: Restore autofix artifacts
         uses: actions/download-artifact@v4
         continue-on-error: true
-        with: { name: autofix, path: project/.autofix }
+        with: { name: autofix, path: autofix-in }
+
+      - name: Accept the expected files and verify the triage decision
+        run: bash toolkit/scripts/accept-artifacts.sh autofix-in project/.autofix
+        env:
+          DECISION_SHA256: ${{ needs.triage.outputs.decision_sha256 }}
 
       - name: Keep CI scratch out of git
         run: printf '.local/\n.autofix/\n' >> project/.git/info/exclude

@@ -32,26 +32,15 @@ comment_on() {
 }
 
 # The claude job hosts the model, so its verdict (VALIDATION) is not what decides here.
-# This is the only job that can write: it runs the guard and the file checks itself on
-# the patch it downloaded, and leaves the patch staged in the index when they pass.
+# This is the only job that can write: it stages the patch it downloaded and judges what
+# git actually staged (stage-patch.sh), and leaves it in the index when that passes.
 revalidate() {
-  local out="$AF/validation.txt"
-  : > "$out"
-  bash "$TOOLKIT_DIR/scripts/check-patch.sh" "$AF/fix.patch" >> "$out" 2>&1 || return 1
-  if ! git apply --index "$AF/fix.patch" >> "$out" 2>&1; then
-    echo "rejected: the patch does not apply to the checked-out commit" >> "$out"
-    git reset -q --hard
-    return 1
-  fi
-  git diff --cached --no-renames --name-only -z > "$AF/changed-files.z"
-  if ! bash "$TOOLKIT_DIR/scripts/validate-files.sh" "$AF/changed-files.z" >> "$out" 2>&1; then
-    git reset -q --hard
-    return 1
-  fi
+  bash "$TOOLKIT_DIR/scripts/stage-patch.sh" "$AF/fix.patch" > "$AF/validation.txt" 2>&1
 }
 
+# One scrubbed, redacted line for titles and the commit subject; empty without a diagnosis.
 title_cause() {
-  node -e 'try{const d=require(process.argv[1]);process.stdout.write(String(d.root_cause||"").split("\n")[0].slice(0,72))}catch{}' "$PWD/$AF/diagnose.json"
+  node "$TOOLKIT_DIR/scripts/render-body.mjs" title "$AF"
 }
 
 # An open PR already carries a fix for this fault: add to it, whatever this run produced.
@@ -70,6 +59,8 @@ if [[ "${ACTION:-}" == "fix" && "${HAS_PATCH:-false}" == "true" && -s "$AF/fix.p
     git config user.name "github-actions[bot]"
     git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
     git checkout -q -b "$branch"   # carries the staged patch onto the new branch
+    # The patch lives in the index only (the worktree still holds the base files), and a
+    # plain commit records exactly the index.
     git commit -q -m "fix(${PROCESS_KEY}): ${cause:-autofix for faulted job ${JOB_KEY}}" \
       -m "Faulted job: ${JOB_KEY}" -m "Fault signature: ${SIG}" -m "Routed by TypeSafe Jev → ${TIER:-?}; run ${RUN_URL:-}"
     git push -q origin "$branch"

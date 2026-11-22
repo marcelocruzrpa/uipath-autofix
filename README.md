@@ -57,7 +57,7 @@ It asks Jev four questions in **one request** (`triage/src/questions.ts`):
 
 ```bash
 npm install
-npm test                         # worker + triage unit tests, then the script tests (need bash; python3 for the XML checks)
+npm test                         # worker + triage unit tests, then the script tests (need bash and git; python3 or python for the XML checks)
 npm run typecheck
 TYPESAFE_API_KEY=... npm run eval -w triage   # route the labeled fixtures through real Jev
 npm run build -w triage && node triage/dist/src/cli.js --evidence <raw dir> --project <repo> --dry-run
@@ -71,7 +71,11 @@ npm run build -w triage && node triage/dist/src/cli.js --evidence <raw dir> --pr
   - Prompts are rendered in Node, never through the shell.
 - **UiPath access is read-only.** The External Application has read-only scopes, so the model can run `uip` freely during diagnosis without being able to change Orchestrator. Those scopes are what bound the `uip` token: the model's file rules discourage reading the token file, but they are not an OS sandbox.
 - **Claude runs in a job with no write token** and a credential-less checkout. Its tools are an explicit allowlist (`--permission-mode dontAsk`), its rules deny writes to `.git/`, `.github/` and `.autofix/`, and `ANTHROPIC_API_KEY` is stripped from the environment of the commands it runs (`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`).
-- **Only `publish` can write, and it trusts nothing the Claude job says about the patch.** It re-runs `scripts/check-patch.sh` itself, which rejects `.github/`, renames, binaries, symlinks, mode changes, unknown file types and oversized diffs, and then re-checks that changed XAML parses and contains no DTD.
+- **Only `publish` can write, and it trusts nothing the Claude job produced.**
+  - It takes only the known files from that job's artifact, and keeps the triage decision only when its hash matches the one the triage job reported (`scripts/accept-artifacts.sh`).
+  - It stages the patch itself and judges what git actually staged, never the patch text (`scripts/stage-patch.sh`, `scripts/check-staged.mjs`). A patch can be written so that the paths git applies differ from the ones its headers show.
+  - Allowed: added, modified or deleted regular files of the listed types, within the size and count limits.
+  - Refused: `.github/`, agent and editor configuration (`.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json`, `.vscode/`, `NuGet.Config`), mode changes, symlinks, binaries, XML that is not well-formed or carries a DTD, invalid JSON, and added lines that look like a credential.
 - **The patch holds only what the fix phase edited.** The worktree is reset between diagnosis and fix, so files that `uip` or the investigation left behind cannot reach a PR.
-- **PR and issue bodies are scrubbed.** Model-written text cannot render images, raw HTML or @-mentions, and anything that looks like a credential is redacted.
+- **Everything published is scrubbed.** That covers PR and issue bodies, comments, titles, commit subjects and the run summary. Model-written text cannot render images, raw HTML or @-mentions, and anything that looks like a credential is redacted.
 - **The human gate is PR review.** UiPath Studio validation does not run in CI.

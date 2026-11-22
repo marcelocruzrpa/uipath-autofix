@@ -110,4 +110,46 @@ describe("render-body.mjs", () => {
     assert.match(body, /No diagnosis was produced/);
     assert.ok(body.includes("<!-- autofix-signature: abc123def456 -->"));
   });
+
+  it("does not trust the type of any field that came through the claude job", () => {
+    const body = render("pr", {
+      "diagnose.json": diagnosis({ evidence: "not a list", proposed_changes: [null, "text", { file: 1, change: 2 }], non_code_actions: { a: 1 }, unverified_observations: 7 }),
+      "diagnose-run.json": { num_turns: "![x](https://evil.test)", total_cost_usd: "1.5" },
+      "fix-run.json": { num_turns: 12, total_cost_usd: 0.25 },
+      "fix.json": { applied: true, files_changed: "x", summary: "Done.", caveats: "not a list" },
+      "decision.json": { decision: { model: "claude-sonnet-5-5" }, summary_md: "### Jev routing: `InvoiceBot`\n" },
+    });
+    assert.doesNotMatch(body, /!\[/);
+    assert.ok(body.includes("| diagnose | `claude-sonnet-5-5` | ? | $0.000 |"), "a non-numeric turn count and cost fall back");
+    assert.ok(body.includes("| fix | `claude-sonnet-5-5` | 12 | $0.250 |"));
+    assert.ok(body.includes("| **total** | | | **$0.250** |"));
+    assert.ok(body.includes("- `1`: 2"), "the one well-formed change is still listed");
+    assert.ok(body.includes("#### Jev routing: `InvoiceBot`"), "the verified triage summary is embedded as written");
+  });
+
+  it("scrubs the routing line it quotes in a comment", () => {
+    const body = render("comment", { "decision.json": { decision: { reason: "ok ![x](https://evil.test) <img src=x> @octocat" } } });
+    assert.doesNotMatch(body, /!\[|<img|@octocat/);
+  });
+
+  it("renders one scrubbed, redacted line for titles and commit subjects", () => {
+    const title = render("title", {
+      "diagnose.json": diagnosis({ root_cause: `Selector changed, fixes #12, ping @octocat, key sk-ant-api03-${"x".repeat(30)} and more text that runs on\nsecond line` }),
+    });
+    assert.doesNotMatch(title, /\n/);
+    assert.ok(title.length <= 72, `${title.length} chars`);
+    assert.doesNotMatch(title, /sk-ant-|#12|@octocat/);
+    assert.match(title, /^Selector changed, fixes #​12, ping @​octocat, key \[REDACTED_ANTHROPIC/);
+    assert.equal(render("title", {}), "", "empty without a diagnosis, so the caller falls back to the job key");
+  });
+
+  it("renders the run summary with the same scrub and redaction", () => {
+    const md = render("diagnosis-summary", {
+      "diagnose.json": diagnosis({ confidence: "high", root_cause: `See ![x](https://evil.test) @octocat sk-ant-api03-${"x".repeat(30)}` }),
+    });
+    assert.match(md, /^### Claude diagnosis/);
+    assert.match(md, /\*\*high\*\* · code fix: \*\*true\*\*/);
+    assert.doesNotMatch(md, /!\[|@octocat|sk-ant-/);
+    assert.equal(render("diagnosis-summary", {}), "");
+  });
 });

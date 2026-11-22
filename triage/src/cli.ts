@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createHash } from "node:crypto";
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { parseArgs } from "node:util";
@@ -26,7 +27,7 @@ function parseOverrides(action?: string, model?: string): Overrides {
 }
 
 /** GitHub Actions output: single-line values only, which is all we emit. */
-function writeOutputs(d: Decision, signature: string) {
+function writeOutputs(d: Decision, signature: string, decisionSha256: string) {
   const file = process.env.GITHUB_OUTPUT;
   if (!file) return;
   const kv: Record<string, string | number> = {
@@ -37,6 +38,9 @@ function writeOutputs(d: Decision, signature: string) {
     budget_usd: d.budget_usd,
     reason: d.reason.replace(/\r?\n/g, " "),
     signature,
+    // `publish` compares this with the decision.json it downloads: job outputs do not pass
+    // through the job that hosts the model, the artifact directory does.
+    decision_sha256: decisionSha256,
   };
   appendFileSync(file, Object.entries(kv).map(([k, v]) => `${k}=${v}\n`).join(""));
 }
@@ -109,11 +113,12 @@ async function main() {
     jev,
     summary_md: summary,
   };
+  const body = `${JSON.stringify(record, null, 2)}\n`;
   if (values.out) {
     mkdirSync(dirname(values.out), { recursive: true });
-    writeFileSync(values.out, `${JSON.stringify(record, null, 2)}\n`);
+    writeFileSync(values.out, body);
   }
-  writeOutputs(decision, signature);
+  writeOutputs(decision, signature, createHash("sha256").update(body).digest("hex"));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
   console.log(decision.reason);
 }

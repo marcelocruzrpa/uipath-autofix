@@ -1,9 +1,18 @@
 #!/usr/bin/env node
-// Render the PR / issue / comment markdown from the .autofix/ artifacts.
-//   usage: render-body.mjs pr|issue|comment <autofix_dir>
-//   env:   SIGNATURE, RUN_URL, JOB_KEY, PROCESS_KEY, ORCHESTRATOR_URL
+// Render what is published from the .autofix/ artifacts.
+//   usage: render-body.mjs pr|issue|comment|title|diagnosis-summary <autofix_dir>
+//     pr, issue, comment   the Markdown body
+//     title                one plain line for the PR/issue title and the commit subject
+//     diagnosis-summary    Markdown for the Actions run summary
+//   env:   SIGNATURE, RUN_URL, JOB_KEY, PROCESS_KEY, ORCHESTRATOR_URL, TIER
+//
+// decision.json is written by the triage job and is printed as trusted Markdown: the
+// workflow verifies its hash before this script runs (accept-artifacts.sh). Every other
+// file passed through the job that hosts the model, so each of their fields is scrubbed
+// and nothing is assumed about its type.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { code, list, num, obj, redact, text, titleLine } from "./lib/scrub.mjs";
 
 const [, , kind, dir = ".autofix"] = process.argv;
 const read = (f) => {
@@ -16,40 +25,41 @@ const read = (f) => {
   }
 };
 
-const triage = read("decision.json");
-const dx = read("diagnose.json");
-const dxRun = read("diagnose-run.json");
-const fix = read("fix.json");
-const fixRun = read("fix-run.json");
+const triage = obj(read("decision.json"));
+const dx = obj(read("diagnose.json"));
+const dxRun = obj(read("diagnose-run.json"));
+const fix = obj(read("fix.json"));
+const fixRun = obj(read("fix-run.json"));
 const validation = read("validation.txt");
 const e = process.env;
 const sig = e.SIGNATURE || "";
 const jobLink = e.ORCHESTRATOR_URL ? `[\`${e.JOB_KEY}\`](${e.ORCHESTRATOR_URL})` : `\`${e.JOB_KEY}\``;
-const decision = triage?.decision;
+const decision = obj(triage?.decision);
+const emit = (s) => process.stdout.write(redact(s));
 
-// Everything below that comes from Claude was derived from robot logs, so it is untrusted
-// Markdown. A zero-width space after "<", between "!" and "[", and after "@" is invisible
-// to a reader, but the text can then no longer form raw HTML (an <img> included), an image
-// or a mention. Images matter most: GitHub fetches them through its proxy as soon as
-// someone opens the thread, which would hand whatever is in the URL to that host. The
-// insertion does not depend on Markdown context, so it holds inside and outside code.
-const ZWSP = "​";
-const text = (s) =>
-  String(s ?? "")
-    .replace(/</g, `<${ZWSP}`)
-    .replace(/!\[/g, `!${ZWSP}[`)
-    .replace(/@(?=[A-Za-z0-9-])/g, `@${ZWSP}`);
-// For a value this script wraps in a `code span`: one line, and unable to close the span.
-const code = (s) => text(s).replace(/`/g, "'").replace(/\s+/g, " ").trim() || "?";
+if (kind === "title") {
+  // Empty when there is no diagnosis: the caller then falls back to the job key.
+  emit(titleLine(dx?.root_cause));
+  process.exit(0);
+}
+
+if (kind === "diagnosis-summary") {
+  if (dx) {
+    const tier = e.TIER ? ` (${code(e.TIER)})` : "";
+    emit(`### Claude diagnosis${tier}\n\n**${text(dx.confidence)}** · code fix: **${dx.is_code_fix === true}**\n\n${text(dx.root_cause)}\n`);
+  }
+  process.exit(0);
+}
+
 const lines = [];
 const out = (s = "") => lines.push(s);
 
 if (kind === "comment") {
   out(`🔁 **Seen again:** job ${jobLink} faulted with the same error signature \`${sig}\`.`);
-  if (decision) out(`Jev: ${decision.reason}`);
+  if (decision) out(`Jev: ${text(decision.reason)}`);
   if (dx?.root_cause) out(`Latest diagnosis (${text(dx.confidence)}): ${text(dx.root_cause)}`);
   out(`Run: ${e.RUN_URL}`);
-  process.stdout.write(redact(lines.join("\n")) + "\n");
+  emit(lines.join("\n") + "\n");
   process.exit(0);
 }
 
@@ -69,19 +79,22 @@ if (dx) {
   out(text(dx.root_cause));
   if (dx.cause_quote) out(`\n> ${text(dx.cause_quote)}${dx.playbook ? `\n> (playbook: \`${code(dx.playbook)}\`)` : ""}`);
   out();
-  if (dx.evidence?.length) {
+  const evidence = list(dx.evidence);
+  if (evidence.length) {
     out("### Evidence");
-    for (const ev of dx.evidence) out(`- \`${code(ev.source)}\`: ${text(ev.datum)}`);
+    for (const ev of evidence) out(`- \`${code(ev.source)}\`: ${text(ev.datum)}`);
     out();
   }
-  if (dx.proposed_changes?.length) {
+  const changes = list(dx.proposed_changes);
+  if (changes.length) {
     out(kind === "pr" ? "### Changes in this PR" : "### Proposed source changes (not applied)");
-    for (const c of dx.proposed_changes) out(`- \`${code(c.file)}\`: ${text(c.change)}${c.rationale ? `. _${text(c.rationale)}_` : ""}`);
+    for (const c of changes) out(`- \`${code(c.file)}\`: ${text(c.change)}${c.rationale ? `. _${text(c.rationale)}_` : ""}`);
     out();
   }
-  if (dx.non_code_actions?.length) {
+  const actions = list(dx.non_code_actions);
+  if (actions.length) {
     out("### Recommended operational actions");
-    for (const a of dx.non_code_actions) out(`- ${text(a)}`);
+    for (const a of actions) out(`- ${text(a)}`);
     out();
   }
   if (dx.summary_md) {
@@ -92,10 +105,11 @@ if (dx) {
     out("</details>");
     out();
   }
-  if (dx.unverified_observations?.length) {
+  const unverified = list(dx.unverified_observations);
+  if (unverified.length) {
     out("<details><summary>Unverified observations (not part of the fix)</summary>");
     out();
-    for (const o of dx.unverified_observations) out(`- ${text(o)}`);
+    for (const o of unverified) out(`- ${text(o)}`);
     out("</details>");
     out();
   }
@@ -108,10 +122,10 @@ if (dx) {
 if (kind === "pr" && fix) {
   out("### Applied");
   out(text(fix.summary));
-  if (fix.caveats?.length) for (const c of fix.caveats) out(`- ⚠️ ${text(c)}`);
+  for (const c of list(fix.caveats)) out(`- ⚠️ ${text(c)}`);
   out();
 }
-if (kind === "issue" && validation && /rejected|not well-formed|invalid JSON|not allowed/.test(validation)) {
+if (kind === "issue" && typeof validation === "string" && /rejected|not well-formed|invalid JSON|not allowed/.test(validation)) {
   out("### Why there is no PR");
   out("A fix was attempted but failed validation:");
   out("```");
@@ -121,7 +135,7 @@ if (kind === "issue" && validation && /rejected|not well-formed|invalid JSON|not
   out();
 }
 
-if (triage?.summary_md) {
+if (typeof triage?.summary_md === "string") {
   out("---");
   out(triage.summary_md.replace(/^### /m, "#### "));
 }
@@ -136,8 +150,9 @@ if (runs.length) {
   out("|---|---|---|---|");
   let total = 0;
   for (const [phase, r] of runs) {
-    total += r.total_cost_usd ?? 0;
-    out(`| ${phase} | \`${decision?.model ?? "?"}\` | ${r.num_turns ?? "?"} | $${(r.total_cost_usd ?? 0).toFixed(3)} |`);
+    const cost = num(r.total_cost_usd) ?? 0;
+    total += cost;
+    out(`| ${phase} | \`${code(decision?.model)}\` | ${num(r.num_turns) ?? "?"} | $${cost.toFixed(3)} |`);
   }
   out(`| **total** | | | **$${total.toFixed(3)}** |`);
   out();
@@ -148,17 +163,4 @@ out(
     ? "_This PR was generated automatically from Orchestrator evidence. UiPath Studio validation did not run in CI, so validate in Studio before merging._"
     : "_Opened automatically by the UiPath Jev router. No source change was proposed as a PR._",
 );
-process.stdout.write(redact(lines.join("\n")) + "\n");
-
-/**
- * Defense in depth: the body is published (possibly to a public repo) and part of it was
- * written by a model that read untrusted robot logs. Strip anything that looks like a
- * credential before it leaves the runner. (Function declaration: hoisted above its uses.)
- */
-function redact(body) {
-  return body
-    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[REDACTED_JWT]")
-    .replace(/\bsk-ant-[A-Za-z0-9_-]{10,}/g, "[REDACTED_ANTHROPIC_KEY]")
-    .replace(/\b(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})/g, "[REDACTED_GITHUB_TOKEN]")
-    .replace(/\b(UIPATH_CLIENT_SECRET|UIPATH_ACCESS_TOKEN|TYPESAFE_API_KEY|ANTHROPIC_API_KEY)\s*[=:]\s*\S+/g, "$1=[REDACTED]");
-}
+emit(lines.join("\n") + "\n");
