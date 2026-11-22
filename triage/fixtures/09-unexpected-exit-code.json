@@ -1,0 +1,24 @@
+{
+  "description": "Executor crashed with an unhandled .NET exception code and no useful robot logs; cause unknown.",
+  "expected": { "action": "investigate", "tier": "opus" },
+  "now": "2026-11-21T12:00:00Z",
+  "repo": { "project_found": true, "workflow_files": ["Main.xaml", "Workflows/ExtractInvoice.xaml", "Workflows/PostToERP.xaml", "Workflows/SubmitInvoice.xaml"] },
+  "raw": {
+    "context": {
+      "job_key": "a1000000-0000-4000-8000-000000000009",
+      "process_key": "InvoiceBot",
+      "robot": "ROBOT02",
+      "info": "Job stopped with an unexpected exit code: 0xE0434352"
+    },
+    "job": { "Key": "a1000000-0000-4000-8000-000000000009", "State": "Faulted", "Source": "Schedule", "RuntimeType": "Unattended", "StartTime": "2026-11-21T05:00:00Z", "EndTime": "2026-11-21T05:14:51Z", "HostMachineName": "ROBOT02" },
+    "errorLogs": [],
+    "logs": [
+      { "Level": "Info", "TimeStamp": "2026-11-21T05:00:03Z", "FileName": "Main", "Message": "InvoiceBot execution started" },
+      { "Level": "Info", "TimeStamp": "2026-11-21T05:14:40Z", "FileName": "ExtractInvoice", "Message": "Processing batch of 412 documents" }
+    ],
+    "recentFaults": [
+      { "Key": "f9a", "State": "Faulted", "CreationTime": "2026-11-20T17:00:00Z", "Info": "Job stopped with an unexpected exit code: 0xE0434352" }
+    ],
+    "recentSuccess": [{ "Key": "s9", "State": "Successful", "CreationTime": "2026-11-21T04:00:00Z", "EndTime": "2026-11-21T04:09:00Z" }]
+  }
+}

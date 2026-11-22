@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-fund --no-audit
+      - run: npm run typecheck
+      - run: npm test   # worker + triage unit tests, then the script tests in scripts/test/
+      - name: Shell scripts parse and lint
+        run: |
+          for f in scripts/*.sh; do bash -n "$f"; done
+          shellcheck --severity=warning scripts/*.sh
+      - name: Workflows lint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.7/scripts/download-actionlint.bash) 1.7.7
+          ./actionlint -color .github/workflows/*.yml templates/project-caller.yml
+      - name: Prompt/schema files are valid
+        run: for f in schemas/*.json triage/policy.config.json; do node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]))' "$f"; done

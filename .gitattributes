@@ -1,0 +1,5 @@
+# Scripts run on Linux runners; CRLF breaks bash ("$'\r': command not found").
+* text=auto eol=lf
+*.sh text eol=lf
+*.mjs text eol=lf
+*.yml text eol=lf

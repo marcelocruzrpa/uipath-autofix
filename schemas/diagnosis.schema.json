@@ -1,0 +1,50 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["is_code_fix", "confidence", "root_cause", "evidence", "proposed_changes", "summary_md"],
+  "properties": {
+    "is_code_fix": {
+      "type": "boolean",
+      "description": "True only when the verified root cause is resolved by changing this repository's source."
+    },
+    "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+    "root_cause": { "type": "string", "description": "One or two sentences naming the confirmed cause." },
+    "cause_quote": { "type": "string", "description": "Verbatim cause from the matched playbook's 'What can cause it' list, if a playbook matched." },
+    "playbook": { "type": "string", "description": "Path of the matched troubleshooting playbook, if any." },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "datum"],
+        "properties": {
+          "source": { "type": "string", "description": "Raw capture file and field, or a source file and line." },
+          "datum": { "type": "string" }
+        }
+      }
+    },
+    "proposed_changes": {
+      "type": "array",
+      "description": "Source edits to apply (empty when is_code_fix is false or confidence is low).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file", "change"],
+        "properties": {
+          "file": { "type": "string", "description": "Path relative to the repository root." },
+          "change": { "type": "string", "description": "Precise description of the edit." },
+          "before": { "type": "string", "description": "Verbatim snippet to replace." },
+          "after": { "type": "string", "description": "Replacement snippet." },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "non_code_actions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Operational fixes to recommend (Orchestrator config, credentials, assets, data, external systems)."
+    },
+    "unverified_observations": { "type": "array", "items": { "type": "string" } },
+    "summary_md": { "type": "string", "description": "Concise markdown narrative of the investigation for the PR or issue body." }
+  }
+}

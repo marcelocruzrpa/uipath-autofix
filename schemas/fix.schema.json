@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["applied", "files_changed", "summary", "caveats"],
+  "properties": {
+    "applied": { "type": "boolean", "description": "True if at least one proposed change was applied." },
+    "files_changed": { "type": "array", "items": { "type": "string" } },
+    "summary": { "type": "string", "description": "What was changed, in one short paragraph." },
+    "caveats": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Proposed changes that were skipped and why, plus anything a reviewer must check in Studio."
+    }
+  }
+}

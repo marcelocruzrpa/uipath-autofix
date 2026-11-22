@@ -1,0 +1,25 @@
+{
+  "description": "One-off HTTP timeout calling the ERP during a maintenance window; hourly runs before and after succeeded.",
+  "expected": { "action": "skip" },
+  "now": "2026-11-21T12:00:00Z",
+  "repo": { "project_found": true, "workflow_files": ["Main.xaml", "Workflows/PostToERP.xaml"] },
+  "raw": {
+    "context": {
+      "job_key": "a1000000-0000-4000-8000-000000000005",
+      "process_key": "InvoiceBot",
+      "robot": "ROBOT01",
+      "info": "HTTP Request 'POST invoice': The operation has timed out. System.Net.WebException: The operation has timed out at System.Net.HttpWebRequest.GetResponse()"
+    },
+    "job": { "Key": "a1000000-0000-4000-8000-000000000005", "State": "Faulted", "Source": "Schedule", "RuntimeType": "Unattended", "StartTime": "2026-11-21T03:00:00Z", "EndTime": "2026-11-21T03:01:45Z", "HostMachineName": "ROBOT01" },
+    "errorLogs": [
+      { "Level": "Error", "TimeStamp": "2026-11-21T03:01:44Z", "FileName": "PostToERP", "Message": "HTTP Request 'POST invoice': The operation has timed out after 100000 ms (retry 3 of 3)." }
+    ],
+    "logs": [
+      { "Level": "Warn", "TimeStamp": "2026-11-21T03:00:40Z", "FileName": "PostToERP", "Message": "ERP responded slowly (retry 1 of 3)" },
+      { "Level": "Warn", "TimeStamp": "2026-11-21T03:01:10Z", "FileName": "PostToERP", "Message": "ERP responded slowly (retry 2 of 3)" },
+      { "Level": "Error", "TimeStamp": "2026-11-21T03:01:44Z", "FileName": "PostToERP", "Message": "HTTP Request 'POST invoice': The operation has timed out after 100000 ms (retry 3 of 3)." }
+    ],
+    "recentFaults": [],
+    "recentSuccess": [{ "Key": "s5", "State": "Successful", "CreationTime": "2026-11-21T04:00:00Z", "EndTime": "2026-11-21T04:02:00Z" }]
+  }
+}

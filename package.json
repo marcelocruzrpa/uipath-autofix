@@ -1,0 +1,13 @@
+{
+  "name": "uipath-jev-router",
+  "private": true,
+  "description": "UiPath faulted-job autofix: Cloudflare Worker relay, TypeSafe Jev router, Claude Code investigation in GitHub Actions",
+  "workspaces": ["worker", "triage"],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present && npm run test:scripts",
+    "test:scripts": "node --test \"scripts/test/*.test.mjs\""
+  },
+  "engines": { "node": ">=22" }
+}

@@ -1,0 +1,24 @@
+{
+  "description": "Invoice exceeds the approval limit; the process raises a BusinessRuleException by design.",
+  "expected": { "action": "skip" },
+  "now": "2026-11-21T12:00:00Z",
+  "repo": { "project_found": true, "workflow_files": ["Main.xaml", "Workflows/ValidateInvoice.xaml"] },
+  "raw": {
+    "context": {
+      "job_key": "a1000000-0000-4000-8000-000000000006",
+      "process_key": "InvoiceBot",
+      "robot": "ROBOT02",
+      "info": "UiPath.Core.Activities.BusinessRuleException: Invoice INV-77120 amount 48,900.00 EUR exceeds the approval limit of 25,000.00 EUR. Route to manual approval."
+    },
+    "job": { "Key": "a1000000-0000-4000-8000-000000000006", "State": "Faulted", "Source": "Manual", "RuntimeType": "Unattended", "StartTime": "2026-11-21T09:30:00Z", "EndTime": "2026-11-21T09:30:20Z", "HostMachineName": "ROBOT02" },
+    "errorLogs": [
+      { "Level": "Error", "TimeStamp": "2026-11-21T09:30:19Z", "FileName": "ValidateInvoice", "Message": "Throw 'Approval limit exceeded': BusinessRuleException: Invoice INV-77120 amount 48,900.00 EUR exceeds the approval limit of 25,000.00 EUR." }
+    ],
+    "logs": [
+      { "Level": "Info", "TimeStamp": "2026-11-21T09:30:05Z", "FileName": "ValidateInvoice", "Message": "Validating invoice INV-77120 against approval matrix" },
+      { "Level": "Error", "TimeStamp": "2026-11-21T09:30:19Z", "FileName": "ValidateInvoice", "Message": "Throw 'Approval limit exceeded': BusinessRuleException" }
+    ],
+    "recentFaults": [],
+    "recentSuccess": [{ "Key": "s6", "State": "Successful", "CreationTime": "2026-11-21T09:00:00Z", "EndTime": "2026-11-21T09:02:00Z" }]
+  }
+}

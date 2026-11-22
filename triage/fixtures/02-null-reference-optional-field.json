@@ -1,0 +1,27 @@
+{
+  "description": "Assign reads PO number from extracted invoice data; invoices without a PO number crash with NullReferenceException.",
+  "expected": { "action": "fix", "tier": "sonnet" },
+  "now": "2026-11-21T12:00:00Z",
+  "repo": { "project_found": true, "workflow_files": ["Main.xaml", "Workflows/ExtractInvoice.xaml", "Workflows/PostToERP.xaml"] },
+  "raw": {
+    "context": {
+      "job_key": "a1000000-0000-4000-8000-000000000002",
+      "process_key": "InvoiceBot",
+      "robot": "ROBOT02",
+      "info": "Assign 'Set poNumber': Object reference not set to an instance of an object.\r\nSystem.NullReferenceException: Object reference not set to an instance of an object.\r\n   at lambda_method(Closure , ActivityContext )\r\n   at ExtractInvoice.xaml: Assign 'Set poNumber' (poNumber = invoiceData(\"PONumber\").ToString.Trim)"
+    },
+    "job": { "Key": "a1000000-0000-4000-8000-000000000002", "State": "Faulted", "Source": "Queue", "RuntimeType": "Unattended", "StartTime": "2026-11-21T10:01:00Z", "EndTime": "2026-11-21T10:01:44Z", "HostMachineName": "ROBOT02" },
+    "errorLogs": [
+      { "Level": "Error", "TimeStamp": "2026-11-21T10:01:43Z", "FileName": "ExtractInvoice", "Message": "Assign 'Set poNumber': Object reference not set to an instance of an object. Expression: invoiceData(\"PONumber\").ToString.Trim" }
+    ],
+    "logs": [
+      { "Level": "Info", "TimeStamp": "2026-11-21T10:01:02Z", "FileName": "Main", "Message": "Processing transaction INV-55012" },
+      { "Level": "Info", "TimeStamp": "2026-11-21T10:01:40Z", "FileName": "ExtractInvoice", "Message": "Extracted 7 of 8 fields; field PONumber not present on document" },
+      { "Level": "Error", "TimeStamp": "2026-11-21T10:01:43Z", "FileName": "ExtractInvoice", "Message": "Assign 'Set poNumber': Object reference not set to an instance of an object." }
+    ],
+    "recentFaults": [
+      { "Key": "f-old-1", "State": "Faulted", "CreationTime": "2026-11-21T06:00:00Z", "Info": "Assign 'Set poNumber': Object reference not set to an instance of an object.\r\nSystem.NullReferenceException: Object reference not set to an instance of an object.\r\n   at lambda_method(Closure , ActivityContext )\r\n   at ExtractInvoice.xaml: Assign 'Set poNumber' (poNumber = invoiceData(\"PONumber\").ToString.Trim)" }
+    ],
+    "recentSuccess": [{ "Key": "s2", "State": "Successful", "CreationTime": "2026-11-21T09:00:00Z", "EndTime": "2026-11-21T09:03:00Z" }]
+  }
+}

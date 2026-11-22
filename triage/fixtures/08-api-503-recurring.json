@@ -1,0 +1,28 @@
+{
+  "description": "Downstream ERP API returns 503; it has happened on 4 earlier runs today, so although it is external it recurs and warrants a look.",
+  "expected": { "action": "investigate" },
+  "now": "2026-11-21T12:00:00Z",
+  "repo": { "project_found": true, "workflow_files": ["Main.xaml", "Workflows/PostToERP.xaml"] },
+  "raw": {
+    "context": {
+      "job_key": "a1000000-0000-4000-8000-000000000008",
+      "process_key": "InvoiceBot",
+      "robot": "ROBOT01",
+      "info": "HTTP Request 'POST invoice': The remote server returned an error: (503) Service Unavailable."
+    },
+    "job": { "Key": "a1000000-0000-4000-8000-000000000008", "State": "Faulted", "Source": "Schedule", "RuntimeType": "Unattended", "StartTime": "2026-11-21T11:00:00Z", "EndTime": "2026-11-21T11:00:12Z", "HostMachineName": "ROBOT01" },
+    "errorLogs": [
+      { "Level": "Error", "TimeStamp": "2026-11-21T11:00:11Z", "FileName": "PostToERP", "Message": "HTTP Request 'POST invoice': The remote server returned an error: (503) Service Unavailable. Body: {\"error\":\"upstream maintenance\"}" }
+    ],
+    "logs": [
+      { "Level": "Error", "TimeStamp": "2026-11-21T11:00:11Z", "FileName": "PostToERP", "Message": "HTTP Request 'POST invoice': The remote server returned an error: (503) Service Unavailable." }
+    ],
+    "recentFaults": [
+      { "Key": "f8a", "State": "Faulted", "CreationTime": "2026-11-21T07:00:00Z", "Info": "HTTP Request 'POST invoice': The remote server returned an error: (503) Service Unavailable." },
+      { "Key": "f8b", "State": "Faulted", "CreationTime": "2026-11-21T08:00:00Z", "Info": "HTTP Request 'POST invoice': The remote server returned an error: (503) Service Unavailable." },
+      { "Key": "f8c", "State": "Faulted", "CreationTime": "2026-11-21T09:00:00Z", "Info": "HTTP Request 'POST invoice': The remote server returned an error: (503) Service Unavailable." },
+      { "Key": "f8d", "State": "Faulted", "CreationTime": "2026-11-21T10:00:00Z", "Info": "HTTP Request 'POST invoice': The remote server returned an error: (503) Service Unavailable." }
+    ],
+    "recentSuccess": [{ "Key": "s8", "State": "Successful", "CreationTime": "2026-11-21T06:00:00Z", "EndTime": "2026-11-21T06:02:00Z" }]
+  }
+}

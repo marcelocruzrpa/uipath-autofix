@@ -1,0 +1,19 @@
+{
+  "description": "Unattended robot credentials expired; the job never reached the workflow.",
+  "expected": { "action": "skip" },
+  "now": "2026-11-21T12:00:00Z",
+  "repo": { "project_found": true, "workflow_files": ["Main.xaml", "Workflows/SubmitInvoice.xaml"] },
+  "raw": {
+    "context": {
+      "job_key": "a1000000-0000-4000-8000-000000000004",
+      "process_key": "InvoiceBot",
+      "robot": "ROBOT03",
+      "info": "Could not start executor. A logon failure has occurred for the robot account. Error: The user name or password is incorrect. (0x8007052E)"
+    },
+    "job": { "Key": "a1000000-0000-4000-8000-000000000004", "State": "Faulted", "Source": "Schedule", "RuntimeType": "Unattended", "StartTime": "2026-11-21T11:00:00Z", "EndTime": "2026-11-21T11:00:03Z", "HostMachineName": "ROBOT03" },
+    "errorLogs": [],
+    "logs": [],
+    "recentFaults": [],
+    "recentSuccess": [{ "Key": "s4", "State": "Successful", "CreationTime": "2026-11-21T10:00:00Z", "EndTime": "2026-11-21T10:02:00Z" }]
+  }
+}

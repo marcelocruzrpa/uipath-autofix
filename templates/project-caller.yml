@@ -1,0 +1,60 @@
+# Copy to <uipath-project-repo>/.github/workflows/uipath-autofix.yml
+#
+# Triggered by the Cloudflare Worker (repository_dispatch) when Orchestrator reports a
+# faulted job for this project, or manually (workflow_dispatch) to replay any job key.
+#
+# Repo setup: secrets ANTHROPIC_API_KEY, TYPESAFE_API_KEY, UIPATH_CLIENT_ID,
+# UIPATH_CLIENT_SECRET; variables UIPATH_TENANT (+ optional UIPATH_ORG, UIPATH_AUTHORITY);
+# Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests".
+name: UiPath autofix
+
+on:
+  repository_dispatch:
+    types: [uipath-job-faulted]
+  workflow_dispatch:
+    inputs:
+      job_key:
+        description: Faulted Orchestrator job key (GUID)
+        required: true
+      process_key:
+        description: Process name (Release.ProcessKey)
+        required: true
+      force_action:
+        description: Override Jev's action
+        type: choice
+        options: ["", skip, investigate, fix]
+        default: ""
+      force_model:
+        description: Override Jev's model choice
+        type: choice
+        options: ["", sonnet, opus]
+        default: ""
+
+# One run per fault signature at a time; identical faults queue instead of racing.
+concurrency:
+  group: uipath-autofix-${{ github.event.client_payload.signature || inputs.job_key }}
+  cancel-in-progress: false
+
+jobs:
+  autofix:
+    uses: your-github-owner/uipath-jev-router/.github/workflows/uipath-autofix.yml@v1
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    with:
+      job_key: ${{ github.event.client_payload.job_key || inputs.job_key }}
+      process_key: ${{ github.event.client_payload.process_key || inputs.process_key }}
+      signature: ${{ github.event.client_payload.signature }}
+      info: ${{ github.event.client_payload.info }}
+      robot: ${{ github.event.client_payload.robot }}
+      folder_id: ${{ format('{0}', github.event.client_payload.folder_id) }}
+      orchestrator_url: ${{ github.event.client_payload.orchestrator_url }}
+      force_action: ${{ inputs.force_action }}
+      force_model: ${{ inputs.force_model }}
+      uipath_tenant: ${{ vars.UIPATH_TENANT }}
+      uipath_org: ${{ vars.UIPATH_ORG }}
+      uipath_authority: ${{ vars.UIPATH_AUTHORITY }}
+      toolkit_repository: your-github-owner/uipath-jev-router
+      toolkit_ref: v1
+    secrets: inherit

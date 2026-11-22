@@ -1,0 +1,25 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "uipath-jev-router",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  "vars": {
+    // Release.ProcessKey (the package / process name in Orchestrator) → GitHub repo.
+    "PROCESS_REPO_MAP": { "InvoiceBot": "your-github-owner/invoice-bot" },
+    // Suppress identical faults (same process + normalized error) for this long.
+    "DEDUPE_TTL_SECONDS": "3600",
+    "EVENT_TYPE": "uipath-job-faulted",
+    // For deep links in PRs/issues, e.g. https://cloud.uipath.com/<org>/<tenant>/orchestrator_
+    "ORCHESTRATOR_BASE_URL": "",
+    // Set "true" during setup to log the first real delivery (headers + body), then turn off.
+    "LOG_RAW_PAYLOAD": "false"
+  },
+  "kv_namespaces": [
+    // Create with: npx wrangler kv namespace create DEDUPE  → paste the id here.
+    { "binding": "DEDUPE", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
+  ]
+  // Secrets (never in this file):
+  //   npx wrangler secret put UIPATH_WEBHOOK_SECRET
+  //   npx wrangler secret put GITHUB_DISPATCH_TOKEN
+}

@@ -1,0 +1,307 @@
+# Reusable workflow: faulted UiPath job → Jev triage → Claude Code diagnosis/fix → PR or issue.
+# Called from each UiPath project repo (see templates/project-caller.yml).
+#
+# Security model
+# - Values from the webhook (job key, Info text, ...) arrive as inputs and only ever reach
+#   scripts through `env:`, never through `${{ }}` inside `run:`.
+# - Claude runs in a job whose GITHUB_TOKEN is read-only and whose checkout has no stored
+#   credentials; only the `publish` job can write, and it re-runs the patch guard and the
+#   file checks itself instead of trusting the verdict of the job that hosts the model.
+# - The UiPath External Application has read-only scopes.
+# - A fault that already has an open PR or issue gets a comment, not another Claude run.
+name: UiPath autofix
+
+on:
+  workflow_call:
+    inputs:
+      job_key: { type: string, required: true, description: "Faulted Orchestrator job key (GUID)" }
+      process_key: { type: string, required: true, description: "Release.ProcessKey of the faulted job" }
+      signature: { type: string, default: "", description: "Fault signature from the Worker (dedupe)" }
+      info: { type: string, default: "", description: "Job.Info from the webhook" }
+      robot: { type: string, default: "" }
+      folder_id: { type: string, default: "" }
+      orchestrator_url: { type: string, default: "" }
+      force_action: { type: string, default: "", description: "Override Jev: skip | investigate | fix" }
+      force_model: { type: string, default: "", description: "Override Jev: sonnet | opus" }
+      uipath_tenant: { type: string, required: true }
+      uipath_org: { type: string, default: "" }
+      uipath_authority: { type: string, default: "" }
+      toolkit_repository: { type: string, default: "your-github-owner/uipath-jev-router" }
+      toolkit_ref: { type: string, default: "v1" }
+    secrets:
+      ANTHROPIC_API_KEY: { required: true }
+      TYPESAFE_API_KEY: { required: true }
+      UIPATH_CLIENT_ID: { required: true }
+      UIPATH_CLIENT_SECRET: { required: true }
+      TOOLKIT_TOKEN: { required: false, description: "Read token for a private toolkit repo" }
+
+permissions: {}
+
+env:
+  JOB_KEY: ${{ inputs.job_key }}
+  PROCESS_KEY: ${{ inputs.process_key }}
+  ORCHESTRATOR_URL: ${{ inputs.orchestrator_url }}
+  UIPATH_TENANT: ${{ inputs.uipath_tenant }}
+  UIPATH_ORG: ${{ inputs.uipath_org }}
+  UIPATH_AUTHORITY: ${{ inputs.uipath_authority }}
+  TOOLKIT_DIR: ${{ github.workspace }}/toolkit
+  DISABLE_AUTOUPDATER: "1"
+
+jobs:
+  triage:
+    name: Jev triage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      action: ${{ steps.jev.outputs.action }}
+      tier: ${{ steps.jev.outputs.tier }}
+      model: ${{ steps.jev.outputs.model }}
+      max_turns: ${{ steps.jev.outputs.max_turns }}
+      budget_usd: ${{ steps.jev.outputs.budget_usd }}
+      reason: ${{ steps.jev.outputs.reason }}
+      signature: ${{ steps.jev.outputs.signature }}
+      existing: ${{ steps.existing.outputs.existing }}
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with: { path: project, persist-credentials: false }
+
+      - name: Checkout toolkit
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.toolkit_repository }}
+          ref: ${{ inputs.toolkit_ref }}
+          token: ${{ secrets.TOOLKIT_TOKEN || github.token }}
+          path: toolkit
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - name: Build Jev triage
+        working-directory: toolkit
+        run: npm ci --workspace triage --no-fund --no-audit && npm run build -w triage
+
+      - name: Install UiPath CLI
+        run: bash toolkit/scripts/install-tools.sh
+        env: { WITH_CLAUDE: "false" }
+
+      - name: Log in to UiPath (read-only External Application)
+        run: bash toolkit/scripts/uip-login.sh
+        env:
+          UIPATH_CLIENT_ID: ${{ secrets.UIPATH_CLIENT_ID }}
+          UIPATH_CLIENT_SECRET: ${{ secrets.UIPATH_CLIENT_SECRET }}
+
+      - name: Gather evidence
+        run: bash toolkit/scripts/gather-evidence.sh project/.local/investigations/raw
+        env:
+          FAULT_SIGNATURE: ${{ inputs.signature }}
+          FAULT_INFO: ${{ inputs.info }}
+          FAULT_ROBOT: ${{ inputs.robot }}
+          FOLDER_ID: ${{ inputs.folder_id }}
+
+      - name: Ask Jev (fix or not? which model?)
+        id: jev
+        run: >-
+          node toolkit/triage/dist/src/cli.js
+          --evidence project/.local/investigations/raw
+          --project project
+          --out project/.autofix/decision.json
+          --force-action "$FORCE_ACTION"
+          --force-model "$FORCE_MODEL"
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          FORCE_ACTION: ${{ inputs.force_action }}
+          FORCE_MODEL: ${{ inputs.force_model }}
+
+      # A fault that already has an open PR or issue only gets a comment (publish posts it),
+      # so an unresolved fault does not pay for a new Claude run every time it recurs.
+      - name: Is this fault already tracked?
+        id: existing
+        if: steps.jev.outputs.action == 'investigate' || steps.jev.outputs.action == 'fix'
+        continue-on-error: true   # a failed lookup means "not tracked": Claude runs as before
+        run: bash toolkit/scripts/find-thread.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SIGNATURE: ${{ steps.jev.outputs.signature }}
+
+      - name: Upload evidence and decision
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage
+          path: |
+            project/.local/investigations/raw/
+            project/.autofix/decision.json
+          include-hidden-files: true
+          retention-days: 14
+
+  claude:
+    name: Claude ${{ needs.triage.outputs.tier }} · ${{ needs.triage.outputs.action }}
+    needs: triage
+    # Skipped when the fault is already tracked, unless the run was forced by hand.
+    if: >-
+      (needs.triage.outputs.action == 'investigate' || needs.triage.outputs.action == 'fix')
+      && (needs.triage.outputs.existing == '' || inputs.force_action != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    outputs:
+      fix_ready: ${{ steps.diagnose.outputs.fix_ready }}
+      has_patch: ${{ steps.patch.outputs.has_patch }}
+      validation: ${{ steps.patch.outputs.validation }}
+    env:
+      MODE: ${{ needs.triage.outputs.action }}
+      TIER: ${{ needs.triage.outputs.tier }}
+      MODEL: ${{ needs.triage.outputs.model }}
+      MAX_TURNS: ${{ needs.triage.outputs.max_turns }}
+      BUDGET_USD: ${{ needs.triage.outputs.budget_usd }}
+      ROUTING_REASON: ${{ needs.triage.outputs.reason }}
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with: { path: project, persist-credentials: false }
+
+      - name: Checkout toolkit
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.toolkit_repository }}
+          ref: ${{ inputs.toolkit_ref }}
+          token: ${{ secrets.TOOLKIT_TOKEN || github.token }}
+          path: toolkit
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - name: Restore evidence and decision
+        uses: actions/download-artifact@v4
+        with: { name: triage, path: project }
+
+      - name: Keep CI scratch out of git
+        run: printf '.local/\n.autofix/\n' >> project/.git/info/exclude
+
+      - name: Install UiPath CLI, Claude Code and UiPath skills
+        run: bash toolkit/scripts/install-tools.sh
+
+      - name: Log in to UiPath (read-only External Application)
+        run: bash toolkit/scripts/uip-login.sh
+        env:
+          UIPATH_CLIENT_ID: ${{ secrets.UIPATH_CLIENT_ID }}
+          UIPATH_CLIENT_SECRET: ${{ secrets.UIPATH_CLIENT_SECRET }}
+
+      - name: Diagnose with uipath-troubleshoot
+        id: diagnose
+        working-directory: project
+        run: bash "$TOOLKIT_DIR/scripts/run-claude.sh" diagnose
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      # The patch is everything that differs from the checkout, so start the fix from a
+      # clean tree: files that `uip` or the diagnosis left behind must not end up in a PR.
+      # .local/ and .autofix/ are excluded from git and survive.
+      - name: Discard what the diagnosis left in the worktree
+        if: steps.diagnose.outputs.fix_ready == 'true'
+        working-directory: project
+        run: git checkout -q -- . && git clean -fdq
+
+      - name: Apply the fix with uipath-rpa
+        if: steps.diagnose.outputs.fix_ready == 'true'
+        working-directory: project
+        run: bash "$TOOLKIT_DIR/scripts/run-claude.sh" fix
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Collect, validate and guard the patch
+        id: patch
+        if: steps.diagnose.outputs.fix_ready == 'true'
+        working-directory: project
+        run: bash "$TOOLKIT_DIR/scripts/collect-patch.sh"
+
+      - name: Diagnosis summary
+        if: always()
+        working-directory: project
+        run: |
+          node -e '
+            const fs = require("fs");
+            let d; try { d = JSON.parse(fs.readFileSync(".autofix/diagnose.json", "utf8")); } catch { console.log("no structured diagnosis"); process.exit(0); }
+            const s = `### Claude diagnosis (${process.env.TIER})\n\n**${d.confidence}** · code fix: **${d.is_code_fix}**\n\n${String(d.root_cause).replace(/@/g, "@​")}\n`;
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, s);
+          '
+
+      - name: Upload autofix artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autofix
+          path: project/.autofix/
+          include-hidden-files: true
+          retention-days: 14
+
+      - name: Upload investigation notes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: investigation
+          path: project/.local/investigations/
+          include-hidden-files: true
+          retention-days: 14
+          if-no-files-found: ignore
+
+  publish:
+    name: Publish PR or issue
+    needs: [triage, claude]
+    if: always() && (needs.triage.outputs.action == 'investigate' || needs.triage.outputs.action == 'fix')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+        with: { path: project }
+
+      - name: Checkout toolkit
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.toolkit_repository }}
+          ref: ${{ inputs.toolkit_ref }}
+          token: ${{ secrets.TOOLKIT_TOKEN || github.token }}
+          path: toolkit
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - name: Restore triage decision
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with: { name: triage, path: project }
+
+      - name: Restore autofix artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with: { name: autofix, path: project/.autofix }
+
+      - name: Keep CI scratch out of git
+        run: printf '.local/\n.autofix/\n' >> project/.git/info/exclude
+
+      - name: Open PR or issue
+        working-directory: project
+        run: bash "$TOOLKIT_DIR/scripts/publish.sh"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SIGNATURE: ${{ needs.triage.outputs.signature }}
+          ACTION: ${{ needs.triage.outputs.action }}
+          TIER: ${{ needs.triage.outputs.tier }}
+          HAS_PATCH: ${{ needs.claude.outputs.has_patch }}
+          VALIDATION: ${{ needs.claude.outputs.validation }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
