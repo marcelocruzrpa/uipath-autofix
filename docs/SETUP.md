@@ -78,9 +78,11 @@ uip or webhooks create "Jev Autofix" \
 2. **Replay a real fault without the webhook:** in the project repo, go to Actions → *UiPath autofix* → **Run workflow** and enter a faulted job key and process name. Use `force_action` / `force_model` to demo a specific path.
 3. **End to end:** make a job fault in Orchestrator, then watch the Worker log (`wrangler tail`), then the Actions run, then the PR or issue.
 4. **First Claude runs:**
-   - Check the `permission denied` notices in the *Diagnose* step log.
-   - The allowlist in `scripts/run-claude.sh` is deliberately narrow. Widen it only for read-only commands the investigation actually needs. `tee` and `mkdir` are allowed only under `.local/investigations/`.
-   - The script sets `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` to keep the API key out of the commands Claude runs. If Bash commands fail to start on your runner, set it to `0` in the workflow's `env:` and report what you saw.
+   - Check the `permission denied` notices in the *Diagnose* step log, and that the log shows the `uipath-troubleshoot` skill being loaded. Claude runs with `--setting-sources user`, so it reads the runner's user settings (where the skills plugin is enabled) and ignores any `.claude/settings` committed in the project repo.
+   - The allowlist in `scripts/run-claude.sh` is deliberately narrow: `uip or …`, `uip traces spans get …`, `uip docsai ask …`, and `tee` and `mkdir` under `.local/investigations/`. Widen it only for a specific read-only command the investigation actually needs. Do not add wildcards for `find`, `grep`, `jq` or `uip` as a whole: `find -exec` runs anything, and `uip` also installs packages and runs local code.
+   - The script sets `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`. It keeps the API key out of the commands Claude runs, and Claude Code then runs those commands in its own sandbox.
+     - If Bash commands fail to start on your runner, that sandbox could not be set up. A likely cause on Ubuntu 24.04 runners is the default restriction on unprivileged user namespaces; a step running `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` before the Claude steps lifts it.
+     - Setting the variable to `0` is the last resort: it hands the API key to every command the model runs.
    - The `autofix` artifact keeps the full Claude result JSON, and the `investigation` artifact keeps the troubleshoot notes.
 
 ## Costs and limits

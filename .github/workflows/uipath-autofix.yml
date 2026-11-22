@@ -46,7 +46,9 @@ env:
   UIPATH_ORG: ${{ inputs.uipath_org }}
   UIPATH_AUTHORITY: ${{ inputs.uipath_authority }}
   TOOLKIT_DIR: ${{ github.workspace }}/toolkit
+  # Neither CLI updates itself mid-run: the pins in scripts/install-tools.sh stay the pins.
   DISABLE_AUTOUPDATER: "1"
+  UIPATH_CLI_DISABLE_VERSION_SYNC: "1"
 
 jobs:
   triage:
@@ -211,6 +213,11 @@ jobs:
         if: steps.diagnose.outputs.fix_ready == 'true'
         working-directory: project
         run: git checkout -q -- . && git clean -fdq
+
+      # The fix phase has no shell and never calls uip, so the saved login goes first.
+      - name: Remove the UiPath login
+        if: steps.diagnose.outputs.fix_ready == 'true'
+        run: rm -rf "$HOME/.uipath/.auth" "$HOME/.uipath/profiles"
 
       - name: Apply the fix with uipath-rpa
         if: steps.diagnose.outputs.fix_ready == 'true'
