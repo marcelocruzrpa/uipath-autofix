@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { APIConnectionError, APIError, type EntryType, TypeSafeClient } from "@typesafe-ai/sdk";
+import { APIConnectionError, APIError, TypeSafeClient } from "@typesafe-ai/sdk";
 import type { JevAnswers, PolicyConfig } from "./policy.js";
 import { questions } from "./questions.js";
 import type { JevState } from "./state.js";
@@ -18,11 +18,10 @@ export function buildRequest(state: JevState, cfg: PolicyConfig) {
 
 export async function askJev(state: JevState, cfg: PolicyConfig, client = new TypeSafeClient()): Promise<JevResult> {
   // The SDK reads TYPESAFE_API_KEY, retries 429/5xx with backoff and honours retry-after.
-  const res = await client.systemOne(
-    { model: cfg.jevModel, state: state as unknown as NonNullable<EntryType>, questions },
-    { timeout: 60_000 },
-  );
-  return { model: res.model, answers: res.answers as unknown as JevAnswers, usage: res.usage };
+  // No casts: the SDK types the answers from `questions`, so the compiler checks that they
+  // still have the shape the policy reads (JevAnswers) when the SDK or a question changes.
+  const res = await client.systemOne({ model: cfg.jevModel, state, questions }, { timeout: 60_000 });
+  return { model: res.model, answers: res.answers, usage: res.usage };
 }
 
 /**

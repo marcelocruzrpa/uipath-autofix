@@ -59,7 +59,8 @@ It asks Jev four questions in **one request** (`triage/src/questions.ts`):
 npm install
 npm test                         # worker + triage unit tests, then the script tests (need bash and git; python3 or python for the XML checks)
 npm run typecheck
-TYPESAFE_API_KEY=... npm run eval -w triage   # route the labeled fixtures through real Jev
+TYPESAFE_API_KEY=... npm run eval -w triage -- --save eval/answers.json   # route the labeled fixtures through real Jev and record the answers
+npm run eval -w triage -- --replay eval/answers.json                      # re-run the policy on the recorded answers, no API calls
 npm run build -w triage && node triage/dist/src/cli.js --evidence <raw dir> --project <repo> --dry-run
 ```
 

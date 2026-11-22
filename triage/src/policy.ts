@@ -31,6 +31,9 @@ export interface Overrides {
   tier?: Tier;
 }
 
+/** The facts computed in code that the policy reads. Only the recurrence count is required. */
+export type PolicyFacts = Pick<DerivedFacts, "same_error_runs_last_24h"> & Partial<Pick<DerivedFacts, "project_found" | "workflow_missing_from_repo">>;
+
 export interface Signals {
   needs_code_fix: number;
   noise_probability: number;
@@ -96,6 +99,21 @@ export function chooseAction(sig: Signals, cfg: PolicyConfig): { action: Action;
   return { action: "investigate", rule: `needs_code_fix in uncertain band [${t.skipBelow}, ${t.fixAtOrAbove})` };
 }
 
+/**
+ * A fix can only be applied to source that is in this repository. Whether it is there is a
+ * lookup, not a judgment, so code decides it: Jev is not asked, and no threshold is involved.
+ */
+export function repoGuard(chosen: { action: Action; rule: string }, facts: PolicyFacts): { action: Action; rule: string } {
+  if (chosen.action !== "fix") return chosen;
+  if (facts.project_found === false) {
+    return { action: "investigate", rule: `${chosen.rule}, but this repository holds no UiPath project (no project.json), so there is nothing to fix here` };
+  }
+  if (facts.workflow_missing_from_repo === true) {
+    return { action: "investigate", rule: `${chosen.rule}, but the workflow the error names is not in this repository` };
+  }
+  return chosen;
+}
+
 export function chooseTier(sig: Signals, cfg: PolicyConfig): { tier: Tier; rule: string } {
   const e = cfg.escalation;
   const reasons: string[] = [];
@@ -135,14 +153,9 @@ function finalize(
   };
 }
 
-export function decide(
-  answers: JevAnswers,
-  facts: Pick<DerivedFacts, "same_error_runs_last_24h">,
-  cfg: PolicyConfig,
-  overrides: Overrides = {},
-): Decision {
+export function decide(answers: JevAnswers, facts: PolicyFacts, cfg: PolicyConfig, overrides: Overrides = {}): Decision {
   const signals = computeSignals(answers, facts, cfg);
-  const a = chooseAction(signals, cfg);
+  const a = repoGuard(chooseAction(signals, cfg), facts);
   const t = chooseTier(signals, cfg);
   return finalize(cfg, a.action, t.tier, { action_rule: a.rule, tier_rule: t.rule, signals, fallback: false, overrides });
 }

@@ -10,6 +10,8 @@ const facts = (over: Partial<DerivedFacts> = {}): DerivedFacts => ({
   last_successful_run_at: null,
   referenced_workflows: [],
   referenced_workflows_found_in_repo: null,
+  project_found: true,
+  workflow_missing_from_repo: false,
   failing_activity: null,
   workflow_match: "none",
   workflow_match_files: [],

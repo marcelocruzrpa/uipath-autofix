@@ -70,11 +70,12 @@ uip or webhooks create "Jev Autofix" \
 
 ## 6. Tune and test
 
-1. **Jev thresholds:** run `TYPESAFE_API_KEY=... npm run eval -w triage`.
-   - Every labeled fixture in `triage/fixtures/` should route as expected.
-   - Adjust `triage/policy.config.json` if needed.
-   - Use `--save eval/answers.json` once and `--replay eval/answers.json` to re-tune without API calls.
-   - Add fixtures from your own real faults over time.
+1. **Jev thresholds:** run `TYPESAFE_API_KEY=... npm run eval -w triage -- --save eval/answers.json`.
+   - Every labeled fixture in `triage/fixtures/` should route as expected. Add `--detail` to see the rule behind each decision.
+   - Commit `triage/eval/answers.json`. It holds Jev's answers with a hash of the request each one answered, and `npm test` replays it: a policy change that reroutes a fixture then fails the build without any API call.
+   - To re-tune `triage/policy.config.json` or the policy code, use `--replay eval/answers.json`. The recorded answers still apply, because the request did not change.
+   - A change to the questions, the state or the Jev model changes the request. The replay then reports the recording as stale: measure the change with a new live run and commit the new answers.
+   - Add fixtures from your own real faults over time. The current ones are hand-written; the log rows match what `uip or jobs logs` returns, but the error text does not come from real jobs.
 2. **Replay a real fault without the webhook:** in the project repo, go to Actions → *UiPath autofix* → **Run workflow** and enter a faulted job key and process name. Use `force_action` / `force_model` to demo a specific path.
 3. **End to end:** make a job fault in Orchestrator, then watch the Worker log (`wrangler tail`), then the Actions run, then the PR or issue.
 4. **First Claude runs:**

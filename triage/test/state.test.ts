@@ -219,6 +219,22 @@ describe("state", () => {
     const fx = byName("01");
     const { facts } = buildState(fx.evidence, { project_found: true, workflow_files: ["Other.xaml"] }, fx.now);
     expect(facts.referenced_workflows_found_in_repo).toBe(false);
+    expect(facts.workflow_missing_from_repo).toBe(true);
+  });
+
+  it("does not call a workflow missing because of a framework source file in a stack trace", () => {
+    const ev = evidenceFromRaw({
+      context: { job_key: "k", process_key: "P", info: "Assign: boom\r\n   at UiPath.Core.Activities.Assign.Execute() in D:\\a\\1\\s\\Activities\\Assign.cs:line 42" },
+    });
+    const { facts } = buildState(ev, { project_found: true, workflow_files: ["Main.xaml"] });
+    expect(facts.referenced_workflows).toEqual(["Assign.cs"]);
+    expect(facts.workflow_missing_from_repo).toBe(false);
+  });
+
+  it("reports whether the checkout holds a project", () => {
+    const fx = byName("01");
+    expect(buildState(fx.evidence, fx.repo, fx.now).facts).toMatchObject({ project_found: true, workflow_missing_from_repo: false });
+    expect(buildState(fx.evidence, noRepo, fx.now).facts).toMatchObject({ project_found: false, workflow_missing_from_repo: false });
   });
 
   it("falls back to Error-level lines from the full log when the error capture is empty", () => {

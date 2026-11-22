@@ -11,6 +11,10 @@ export interface DerivedFacts {
   last_successful_run_at: string | null;
   referenced_workflows: string[];
   referenced_workflows_found_in_repo: boolean | null;
+  /** Whether the checkout holds a UiPath project at all (a project.json). */
+  project_found: boolean;
+  /** The error names at least one .xaml workflow and none of them is in this checkout. */
+  workflow_missing_from_repo: boolean;
   /** The display name the error text leads with, when it names an activity in this repo. */
   failing_activity: string | null;
   /** Whether that display name occurs in no, exactly one, or several workflow files. */
@@ -18,7 +22,8 @@ export interface DerivedFacts {
   workflow_match_files: string[];
 }
 
-export interface JevState {
+/** A type alias, not an interface: only an alias is assignable to the SDK's JSON content type without a cast. */
+export type JevState = {
   process: { name: string; folder: string | null };
   job: {
     key: string;
@@ -42,7 +47,7 @@ export interface JevState {
     referenced_workflows_found_in_repo: boolean | null;
   };
   evidence_gaps: string[];
-}
+};
 
 export const LIMITS = {
   info: 4000,
@@ -111,6 +116,10 @@ export function deriveFacts(ev: Evidence, repo: RepoFacts, now: Date): DerivedFa
   const refs = referencedWorkflows(ev);
   const repoBasenames = new Set(repo.workflow_files.map((f) => f.split("/").at(-1)!.toLowerCase()));
   const found = refs.length === 0 || !repo.project_found ? null : refs.some((r) => repoBasenames.has(r.toLowerCase()));
+  // Only .xaml names count here: a .cs name in a stack trace is usually framework source,
+  // which is never in the project repository.
+  const xamlRefs = refs.filter((r) => /\.xaml$/i.test(r));
+  const workflowMissing = repo.project_found && xamlRefs.length > 0 && !xamlRefs.some((r) => repoBasenames.has(r.toLowerCase()));
   const located = locateFailingActivity(ev, repo);
   return {
     faulted_runs_last_24h: others.length,
@@ -118,6 +127,8 @@ export function deriveFacts(ev: Evidence, repo: RepoFacts, now: Date): DerivedFa
     last_successful_run_at: lastSuccess ?? null,
     referenced_workflows: refs,
     referenced_workflows_found_in_repo: found,
+    project_found: repo.project_found,
+    workflow_missing_from_repo: workflowMissing,
     failing_activity: located.activity,
     workflow_match: located.match,
     workflow_match_files: located.files,

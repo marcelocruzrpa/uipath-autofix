@@ -62,6 +62,31 @@ describe("action", () => {
   });
 });
 
+describe("repository guard", () => {
+  const fix = answers({ fix: 0.9 });
+
+  it("does not fix when the checkout holds no UiPath project", () => {
+    const d = decide(fix, { ...noRecurrence, project_found: false }, cfg);
+    expect(d.action).toBe("investigate");
+    expect(d.action_rule).toMatch(/no UiPath project/);
+  });
+
+  it("does not fix when the workflow the error names is not in this repository", () => {
+    const d = decide(fix, { ...noRecurrence, project_found: true, workflow_missing_from_repo: true }, cfg);
+    expect(d.action).toBe("investigate");
+    expect(d.action_rule).toMatch(/not in this repository/);
+  });
+
+  it("leaves the decision alone when the source is here, or when it was not a fix anyway", () => {
+    expect(decide(fix, { ...noRecurrence, project_found: true, workflow_missing_from_repo: false }, cfg).action).toBe("fix");
+    expect(decide(answers({ fix: 0.1, category: noisy }), { ...noRecurrence, project_found: false }, cfg).action).toBe("skip");
+  });
+
+  it("yields to a forced action", () => {
+    expect(decide(fix, { ...noRecurrence, project_found: false }, cfg, { action: "fix" }).action).toBe("fix");
+  });
+});
+
 describe("model tier", () => {
   it("uses sonnet for a small, well-localized change", () => {
     const d = decide(answers({ fix: 0.9 }), noRecurrence, cfg);
