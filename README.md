@@ -1,6 +1,6 @@
 # UiPath Autofix
 
-When a UiPath Orchestrator job faults, this pipeline collects the evidence and asks **Jev (from TypeSafe AI)** whether the fault needs a code change and which Claude model should handle it. Claude Code then diagnoses the fault and, when the cause is clear, fixes it with the UiPath skills. The result lands in that project's GitHub repo as a pull request, an issue, or just a note in the Actions run summary.
+When a UiPath Orchestrator job faults, this pipeline collects the evidence and asks Jev (from TypeSafe AI) whether the fault needs a code change and which Claude model should handle it. Claude Code then diagnoses the fault and, when the cause is clear, fixes it with the UiPath skills. The result lands in that project's GitHub repo as a pull request, an issue, or just a note in the Actions run summary.
 
 ```
 Orchestrator ── job.faulted webhook ──▶ Cloudflare Worker ── repository_dispatch ──▶ project repo
