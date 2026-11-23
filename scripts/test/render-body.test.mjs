@@ -139,8 +139,21 @@ describe("render-body.mjs", () => {
     assert.doesNotMatch(title, /\n/);
     assert.ok(title.length <= 72, `${title.length} chars`);
     assert.doesNotMatch(title, /sk-ant-|#12|@octocat/);
-    assert.match(title, /^Selector changed, fixes #​12, ping @​octocat, key \[REDACTED_ANTHROPIC/);
+    // Redacted before the cut, which then stops at the word boundary before the marker.
+    assert.equal(title, "Selector changed, fixes #​12, ping @​octocat, key…");
     assert.equal(render("title", {}), "", "empty without a diagnosis, so the caller falls back to the job key");
+  });
+
+  it("cuts a long title at a word boundary, without a dangling code span", () => {
+    // The root cause of the first real PR: the old cut ended inside the code span.
+    const title = render("title", {
+      "diagnose.json": diagnosis({
+        root_cause: 'The Assign "Normalize Customer Note" evaluates `in_CustomerNote.Trim().ToUpper()`, but the job was started with no input',
+      }),
+    });
+    assert.ok(title.length <= 72, `${title.length} chars`);
+    assert.doesNotMatch(title, /`/);
+    assert.equal(title, 'The Assign "Normalize Customer Note" evaluates…');
   });
 
   it("renders the run summary with the same scrub and redaction", () => {

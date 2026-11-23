@@ -55,14 +55,19 @@ export const hasCredential = (s) => redact(s) !== String(s ?? "");
  */
 export function titleLine(s, max = 72) {
   const first = String(s ?? "").split(/\r?\n/)[0] ?? "";
-  return redact(first)
+  const line = redact(first)
     .replace(/[\u0000-\u001f\u007f]/g, " ")
+    // Titles are plain text: a code span shows as literal backticks, and a cut one dangles.
+    .replace(/`/g, "")
     .replace(/@(?=[A-Za-z0-9-])/g, `@${ZWSP}`)
     .replace(/#(?=\d)/g, `#${ZWSP}`)
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, max)
     .trim();
+  if (line.length <= max) return line;
+  // Cut at a word boundary and mark the cut, rather than ending mid-word.
+  const room = line.slice(0, max - 1);
+  const space = room.lastIndexOf(" ");
+  return `${(space > max / 2 ? room.slice(0, space) : room).replace(/[\s,;:.(-]+$/, "")}…`;
 }
 
 /**
