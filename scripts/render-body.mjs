@@ -170,6 +170,6 @@ if (runs.length) {
 out(
   kind === "pr"
     ? "_This PR was generated automatically from Orchestrator evidence. UiPath Studio validation did not run in CI, so validate in Studio before merging._"
-    : "_Opened automatically by the UiPath Jev router. No source change was proposed as a PR._",
+    : "_Opened automatically by UiPath Autofix. No source change was proposed as a PR._",
 );
 emit(lines.join("\n") + "\n");

@@ -1,5 +1,5 @@
 {
-  "name": "uipath-jev-router",
+  "name": "uipath-autofix",
   "private": true,
   "license": "MIT",
   "repository": { "type": "git", "url": "git+https://github.com/marcelocruzrpa/uipath-autofix.git" },

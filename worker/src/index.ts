@@ -42,7 +42,7 @@ async function dispatch(env: Env, repo: string, payload: DispatchPayload): Promi
       authorization: `Bearer ${env.GITHUB_DISPATCH_TOKEN}`,
       accept: "application/vnd.github+json",
       "x-github-api-version": "2022-11-28",
-      "user-agent": "uipath-jev-router",
+      "user-agent": "uipath-autofix",
       "content-type": "application/json",
     },
     body: JSON.stringify({ event_type: env.EVENT_TYPE || "uipath-job-faulted", client_payload: payload }),

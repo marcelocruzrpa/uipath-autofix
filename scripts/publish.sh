@@ -14,7 +14,7 @@ FIX_ATTEMPTED_LABEL="uipath-autofix:fix-attempted"
 summary() { [[ -n "${GITHUB_STEP_SUMMARY:-}" ]] && echo "$1" >> "$GITHUB_STEP_SUMMARY"; echo "$1"; }
 render() { node "$TOOLKIT_DIR/scripts/render-body.mjs" "$@"; }
 
-gh label create uipath-autofix --color 5319e7 --description "Opened by the UiPath Jev router" --force >/dev/null
+gh label create uipath-autofix --color 5319e7 --description "Opened by UiPath Autofix" --force >/dev/null
 gh label create uipath-autofix:investigate --color fbca04 --description "Diagnosis only, no PR" --force >/dev/null
 gh label create "$FIX_ATTEMPTED_LABEL" --color d4c5f9 --description "A fix was already attempted for this issue" --force >/dev/null
 labels=(--label uipath-autofix)

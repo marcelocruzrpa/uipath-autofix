@@ -1,5 +1,5 @@
 {
-  "name": "@uipath-jev-router/triage",
+  "name": "@uipath-autofix/triage",
   "private": true,
   "license": "MIT",
   "type": "module",
