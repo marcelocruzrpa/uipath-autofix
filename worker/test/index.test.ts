@@ -234,10 +234,45 @@ describe("fault signature", () => {
       "Job stopped with an unexpected exit code: 0xE0434352",
       "HTTP 503 at 2026-11-21 10:00:00 for 3f1c2a9e-1111-4222-8333-444455556666\r\n\tretry 3",
       "",
+      JOBS_GET_INFO,
+      webhookInfo(JOBS_GET_INFO),
+      'broken escape \\r\\n at Assign \\"x\\" \\q',
     ];
     for (const s of samples) {
       expect(normalizeInfo(s)).toBe(triageSig.normalizeInfo(s));
       expect(await faultSignature("InvoiceBot", s)).toBe(triageSig.faultSignature("InvoiceBot", s));
     }
+  });
+
+  // The shape of a real AutofixDemo fault (staging, 2026-11-23). `jobs get` returns it with
+  // CRLF line breaks; the webhook sent it as one JSON-escaped line with a different head and
+  // tail, so the old signature differed between a webhook run and a manual replay.
+  const JOBS_GET_INFO = [
+    "Object reference not set to an instance of an object.",
+    "",
+    "in Main.xaml",
+    '    at Assign "Normalize Customer Note"',
+    '    at Sequence "Process Customer Note"',
+    '    at Main "Main"',
+    "",
+    "System.NullReferenceException: Object reference not set to an instance of an object.",
+    "   at Namespace_m4jghhguw7.Main_Expressions.__Expr1Get()",
+    "   at System.Activities.ActivityInstance.ResolveArguments(ActivityExecutor executor)",
+  ].join("\r\n");
+  function webhookInfo(info: string): string {
+    const escaped = JSON.stringify(info).slice(1, -1);
+    return `Source: Normalize Customer Note ${escaped}\\r\\n--- end of stack trace from robot DESKTOP-MC ---`;
+  }
+
+  it("gives a webhook fault and its jobs get record the same signature", async () => {
+    expect(await faultSignature("AutofixDemo", webhookInfo(JOBS_GET_INFO))).toBe(await faultSignature("AutofixDemo", JOBS_GET_INFO));
+    expect(normalizeInfo(JOBS_GET_INFO)).toBe(
+      'system.nullreferenceexception: object reference not set to an instance of an object. at assign "normalize customer note" at sequence "process customer note" at main "main"',
+    );
+  });
+
+  it("keeps a different failing activity a different fault", async () => {
+    const other = JOBS_GET_INFO.replace('at Assign "Normalize Customer Note"', 'at Assign "Parse Amount"');
+    expect(await faultSignature("AutofixDemo", other)).not.toBe(await faultSignature("AutofixDemo", JOBS_GET_INFO));
   });
 });

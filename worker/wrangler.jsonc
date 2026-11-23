@@ -14,7 +14,7 @@
     "ORCHESTRATOR_BASE_URL": "https://staging.uipath.com/marcelocruz/DefaultTenant/orchestrator_",
     // Set "true" during setup to log the shape of deliveries: the payload's keys with value
     // types, and how the signature is encoded. No values are logged. Turn off afterwards.
-    "LOG_PAYLOAD_SHAPE": "true"
+    "LOG_PAYLOAD_SHAPE": "false"
   },
   "kv_namespaces": [
     // Create with: npx wrangler kv namespace create DEDUPE  → paste the id here.
