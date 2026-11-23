@@ -71,11 +71,11 @@ jobs:
       fix_attempted: ${{ steps.existing.outputs.fix_attempted }}
     steps:
       - name: Checkout project
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { path: project, persist-credentials: false }
 
       - name: Checkout toolkit
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ inputs.toolkit_repository }}
           ref: ${{ inputs.toolkit_ref }}
@@ -83,7 +83,7 @@ jobs:
           path: toolkit
           persist-credentials: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
 
       - name: Build Jev triage
@@ -139,7 +139,7 @@ jobs:
       # Also when triage fails: the evidence and its .stderr files are what explain why.
       - name: Upload evidence and decision
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: triage
           path: |
@@ -180,11 +180,11 @@ jobs:
       ROUTING_REASON: ${{ needs.triage.outputs.reason }}
     steps:
       - name: Checkout project
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { path: project, persist-credentials: false }
 
       - name: Checkout toolkit
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ inputs.toolkit_repository }}
           ref: ${{ inputs.toolkit_ref }}
@@ -192,11 +192,11 @@ jobs:
           path: toolkit
           persist-credentials: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
 
       - name: Restore evidence and decision
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with: { name: triage, path: project }
 
       - name: Keep CI scratch out of git
@@ -252,7 +252,7 @@ jobs:
 
       - name: Upload autofix artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: autofix
           path: project/.autofix/
@@ -261,7 +261,7 @@ jobs:
 
       - name: Upload investigation notes
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: investigation
           path: project/.local/investigations/
@@ -281,11 +281,11 @@ jobs:
       issues: write
     steps:
       - name: Checkout project
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { path: project }
 
       - name: Checkout toolkit
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ inputs.toolkit_repository }}
           ref: ${{ inputs.toolkit_ref }}
@@ -293,11 +293,11 @@ jobs:
           path: toolkit
           persist-credentials: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
 
       - name: Restore triage decision
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with: { name: triage, path: project }
 
@@ -305,7 +305,7 @@ jobs:
       # and only the files this job knows how to judge are taken over. It also holds that
       # job's copy of decision.json, which must not replace the triage job's.
       - name: Restore autofix artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with: { name: autofix, path: autofix-in }
 

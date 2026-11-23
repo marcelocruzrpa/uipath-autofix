@@ -1,0 +1,20 @@
+# Keeps the SHA-pinned actions current (the "# vX.Y.Z" comments are updated with them) and
+# the npm dependencies on their current major. The uip CLI and Claude Code pins live in
+# scripts/install-tools.sh and are bumped by hand.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }
+
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: monthly }
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

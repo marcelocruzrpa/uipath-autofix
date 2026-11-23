@@ -27,6 +27,10 @@ A fault sends Orchestrator data to three places. Decide whether that is acceptab
   - Settings committed in the project repo are not loaded (`--setting-sources user`), and `ANTHROPIC_API_KEY` is stripped from the environment of the commands Claude runs (`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`).
   - The saved `uip` login is deleted before the fix phase.
 - **The tool versions are frozen.** An npm pin alone does not hold for `uip`, which updates itself daily and loads tool packages from the nearest `node_modules/@uipath`. `scripts/install-tools.sh` freezes the version, installs the tools up front and makes `uip` load them from the global install only, so nothing is installed or loaded from the checkout while the model runs.
+- **The workflow code is pinned.**
+  - Every third-party action is pinned by commit SHA, and Dependabot (`.github/dependabot.yml`) keeps the SHAs current.
+  - Project repos call the toolkit at the `v1` tag, which only moves when a toolkit release is cut.
+  - For a caller that must never change under it, pin `uses: …@<sha>` and `toolkit_ref: <sha>` to the same commit.
 - **Only `publish` can write, and it trusts nothing the Claude job produced.**
   - It takes only the known files from that job's artifact, and keeps the triage decision only when its hash matches the one the triage job reported (`scripts/accept-artifacts.sh`).
   - It stages the patch itself and judges what git actually staged, never the patch text (`scripts/stage-patch.sh`, `scripts/check-staged.mjs`). A patch can be written so that the paths git applies differ from the ones its headers show.
