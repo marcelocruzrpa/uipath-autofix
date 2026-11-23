@@ -1,6 +1,8 @@
 {
   "name": "uipath-jev-router",
   "private": true,
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/marcelocruzrpa/uipath-autofix.git" },
   "description": "UiPath faulted-job autofix: Cloudflare Worker relay, TypeSafe Jev router, Claude Code investigation in GitHub Actions",
   "workspaces": ["worker", "triage"],
   "scripts": {

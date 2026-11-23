@@ -67,3 +67,7 @@ npm run build -w triage && node triage/dist/src/cli.js --evidence <raw dir> --pr
 - Fault data goes to TypeSafe, Anthropic and GitHub (artifacts are kept 14 days), so keep project repos private.
 
 Details: [docs/SECURITY.md](docs/SECURITY.md).
+
+## License
+
+[MIT](LICENSE)

@@ -1,6 +1,7 @@
 {
   "name": "@uipath-jev-router/worker",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",

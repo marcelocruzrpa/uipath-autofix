@@ -1,6 +1,7 @@
 {
   "name": "@uipath-jev-router/triage",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "bin": { "jev-triage": "dist/src/cli.js" },
   "scripts": {
