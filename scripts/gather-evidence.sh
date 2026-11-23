@@ -45,6 +45,9 @@ cap() {
   else
     failures=$((failures + 1))
     echo "::warning::'uip $*' failed; see $name.stderr (treated as an evidence gap)"
+    # uip prints its error envelope ({Result, Message, Instructions}) on stdout, so keep it
+    # with the stderr: it is the only record of why the call failed.
+    cat "$OUT/$name.json" >> "$OUT/$name.stderr" 2>/dev/null || true
     rm -f "$OUT/$name.json"
   fi
 }
