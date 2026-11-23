@@ -2,6 +2,7 @@
   "jevModel": "jev-1.14.0",
   "thresholds": {
     "skipBelow": 0.3,
+    "minNoiseForSkip": 0.5,
     "fixAtOrAbove": 0.7,
     "maxNoiseForFix": 0.5,
     "recurringAtLeast": 3
@@ -10,7 +11,7 @@
   "escalation": {
     "complexFromLevel": 2,
     "pComplexAtLeast": 0.5,
-    "pinpointedBelow": 0.4,
+    "pinpointedBelow": 0.5,
     "complexityConfidenceBelow": 0.25
   },
   "models": {

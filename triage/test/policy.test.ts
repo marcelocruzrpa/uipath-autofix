@@ -42,6 +42,12 @@ describe("action", () => {
     expect(d.action_rule).toMatch(/recurred 3×/);
   });
 
+  it("investigates a low needs_code_fix when the category does not point to noise", () => {
+    const d = decide(answers({ fix: 0.1 }), noRecurrence, cfg);
+    expect(d.action).toBe("investigate");
+    expect(d.action_rule).toMatch(/does not point to noise/);
+  });
+
   it("fixes when needs_code_fix is high and category is not noise", () => {
     expect(decide(answers({ fix: 0.85 }), noRecurrence, cfg).action).toBe("fix");
   });

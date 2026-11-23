@@ -1,0 +1,455 @@
+{
+  "recorded_at": "2026-11-23T11:55:06.182Z",
+  "fixtures": {
+    "01-selector-not-found": {
+      "request_sha256": "4d2db1bd57f71b1effbdcd2cfcae53322c108291a752ad79c7ddda2a42631a4b",
+      "result": {
+        "model": "jev-1.14.0",
+        "answers": {
+          "fault_category": {
+            "type": "choice",
+            "choice": "ui_selector_drift",
+            "confidence": 1,
+            "probabilities": {
+              "automation_logic": 0,
+              "ui_selector_drift": 1,
+              "input_data": 0,
+              "transient": 0,
+              "infrastructure": 0,
+              "external_system": 0
+            }
+          },
+          "needs_code_fix": {
+            "type": "noul",
+            "noul": 0.96
+          },
+          "fix_complexity": {
+            "type": "score",
+            "score": 0,
+            "confidence": 1,
+            "legend": {
+              "0": "A single value in a single activity must change, such as one selector attribute, one timeout, one constant or one configuration key.",
+              "1": "A logic change confined to one workflow file, such as adding a null or empty check, fixing one expression, or wrapping one activity in a retry scope.",
+              "2": "Coordinated changes across several workflow files, or changes to the arguments or data passed between workflows.",
+              "3": "A redesign of error handling or of the framework, a package dependency upgrade, or a root cause that is unclear and needs deep investigation before any change."
+            },
+            "probabilities": {
+              "0": 1,
+              "1": 0,
+              "2": 0,
+              "3": 0
+            }
+          },
+          "location_pinpointed": {
+            "type": "noul",
+            "noul": 0.96
+          }
+        },
+        "usage": {
+          "input_tokens": 1765,
+          "output_tokens": 128
+        }
+      }
+    },
+    "02-null-reference-optional-field": {
+      "request_sha256": "3a8299fc1afdaa94b25ac464316c05e969ae8af2ffbcc8c6856fe562d03470e0",
+      "result": {
+        "model": "jev-1.14.0",
+        "answers": {
+          "fault_category": {
+            "type": "choice",
+            "choice": "automation_logic",
+            "confidence": 0.99,
+            "probabilities": {
+              "automation_logic": 0.99,
+              "ui_selector_drift": 0,
+              "input_data": 0.01,
+              "transient": 0,
+              "infrastructure": 0,
+              "external_system": 0
+            }
+          },
+          "needs_code_fix": {
+            "type": "noul",
+            "noul": 0.9
+          },
+          "fix_complexity": {
+            "type": "score",
+            "score": 1,
+            "confidence": 1,
+            "legend": {
+              "0": "A single value in a single activity must change, such as one selector attribute, one timeout, one constant or one configuration key.",
+              "1": "A logic change confined to one workflow file, such as adding a null or empty check, fixing one expression, or wrapping one activity in a retry scope.",
+              "2": "Coordinated changes across several workflow files, or changes to the arguments or data passed between workflows.",
+              "3": "A redesign of error handling or of the framework, a package dependency upgrade, or a root cause that is unclear and needs deep investigation before any change."
+            },
+            "probabilities": {
+              "0": 0,
+              "1": 1,
+              "2": 0,
+              "3": 0
+            }
+          },
+          "location_pinpointed": {
+            "type": "noul",
+            "noul": 0.98
+          }
+        },
+        "usage": {
+          "input_tokens": 1718,
+          "output_tokens": 126
+        }
+      }
+    },
+    "03-invalid-cast-across-workflows": {
+      "request_sha256": "122a1dce2da1383eaeacf3497914e35197799a4d4af4ec92c9b205f3f5528ab9",
+      "result": {
+        "model": "jev-1.14.0",
+        "answers": {
+          "fault_category": {
+            "type": "choice",
+            "choice": "automation_logic",
+            "confidence": 0.99,
+            "probabilities": {
+              "automation_logic": 0.99,
+              "ui_selector_drift": 0,
+              "input_data": 0.01,
+              "transient": 0,
+              "infrastructure": 0,
+              "external_system": 0
+            }
+          },
+          "needs_code_fix": {
+            "type": "noul",
+            "noul": 0.88
+          },
+          "fix_complexity": {
+            "type": "score",
+            "score": 1.32,
+            "confidence": 0.64,
+            "legend": {
+              "0": "A single value in a single activity must change, such as one selector attribute, one timeout, one constant or one configuration key.",
+              "1": "A logic change confined to one workflow file, such as adding a null or empty check, fixing one expression, or wrapping one activity in a retry scope.",
+              "2": "Coordinated changes across several workflow files, or changes to the arguments or data passed between workflows.",
+              "3": "A redesign of error handling or of the framework, a package dependency upgrade, or a root cause that is unclear and needs deep investigation before any change."
+            },
+            "probabilities": {
+              "0": 0.02,
+              "1": 0.64,
+              "2": 0.34,
+              "3": 0
+            }
+          },
+          "location_pinpointed": {
+            "type": "noul",
+            "noul": 0.41
+          }
+        },
+        "usage": {
+          "input_tokens": 1736,
+          "output_tokens": 126
+        }
+      }
+    },
+    "04-robot-logon-failure": {
+      "request_sha256": "c9a909bcabdf4719f96b119d22b75bebefef519a10744e0ce3ebf12e4b3fdb07",
+      "result": {
+        "model": "jev-1.14.0",
+        "answers": {
+          "fault_category": {
+            "type": "choice",
+            "choice": "infrastructure",
+            "confidence": 1,
+            "probabilities": {
+              "automation_logic": 0,
+              "ui_selector_drift": 0,
+              "input_data": 0,
+              "transient": 0,
+              "infrastructure": 1,
+              "external_system": 0
+            }
+          },
+          "needs_code_fix": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "fix_complexity": {
+            "type": "score",
+            "score": 1.35,
+            "confidence": 0,
+            "legend": {
+              "0": "A single value in a single activity must change, such as one selector attribute, one timeout, one constant or one configuration key.",
+              "1": "A logic change confined to one workflow file, such as adding a null or empty check, fixing one expression, or wrapping one activity in a retry scope.",
+              "2": "Coordinated changes across several workflow files, or changes to the arguments or data passed between workflows.",
+              "3": "A redesign of error handling or of the framework, a package dependency upgrade, or a root cause that is unclear and needs deep investigation before any change."
+            },
+            "probabilities": {
+              "0": 0.54,
+              "1": 0.01,
+              "2": 0.01,
+              "3": 0.44
+            }
+          },
+          "location_pinpointed": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        },
+        "usage": {
+          "input_tokens": 1459,
+          "output_tokens": 128
+        }
+      }
+    },
+    "05-transient-timeout-once": {
+      "request_sha256": "0be4032b9625bb179f0e1bf00dcc5eccc04d1e50bc47eeb9a960d28fd2cb0304",
+      "result": {
+        "model": "jev-1.14.0",
+        "answers": {
+          "fault_category": {
+            "type": "choice",
+            "choice": "transient",
+            "confidence": 0.64,
+            "probabilities": {
+              "automation_logic": 0,
+              "ui_selector_drift": 0,
+              "input_data": 0,
+              "transient": 0.7,
+              "infrastructure": 0,
+              "external_system": 0.3
+            }
+          },
+          "needs_code_fix": {
+            "type": "noul",
+            "noul": 0.19
+          },
+          "fix_complexity": {
+            "type": "score",
+            "score": 0.4,
+            "confidence": 0.61,
+            "legend": {
+              "0": "A single value in a single activity must change, such as one selector attribute, one timeout, one constant or one configuration key.",
+              "1": "A logic change confined to one workflow file, such as adding a null or empty check, fixing one expression, or wrapping one activity in a retry scope.",
+              "2": "Coordinated changes across several workflow files, or changes to the arguments or data passed between workflows.",
+              "3": "A redesign of error handling or of the framework, a package dependency upgrade, or a root cause that is unclear and needs deep investigation before any change."
+            },
+            "probabilities": {
+              "0": 0.78,
+              "1": 0.13,
+              "2": 0.01,
+              "3": 0.08
+            }
+          },
+          "location_pinpointed": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        },
+        "usage": {
+          "input_tokens": 1657,
+          "output_tokens": 126
+        }
+      }
+    },
+    "06-business-rule-exception": {
+      "request_sha256": "35662ac04d8dda5010061d34f29588528eeb27039db7da4d83ed4236c307f2fb",
+      "result": {
+        "model": "jev-1.14.0",
+        "answers": {
+          "fault_category": {
+            "type": "choice",
+            "choice": "input_data",
+            "confidence": 1,
+            "probabilities": {
+              "automation_logic": 0,
+              "ui_selector_drift": 0,
+              "input_data": 1,
+              "transient": 0,
+              "infrastructure": 0,
+              "external_system": 0
+            }
+          },
+          "needs_code_fix": {
+            "type": "noul",
+            "noul": 0.15
+          },
+          "fix_complexity": {
+            "type": "score",
+            "score": 0.73,
+            "confidence": 0.52,
+            "legend": {
+              "0": "A single value in a single activity must change, such as one selector attribute, one timeout, one constant or one configuration key.",
+              "1": "A logic change confined to one workflow file, such as adding a null or empty check, fixing one expression, or wrapping one activity in a retry scope.",
+              "2": "Coordinated changes across several workflow files, or changes to the arguments or data passed between workflows.",
+              "3": "A redesign of error handling or of the framework, a package dependency upgrade, or a root cause that is unclear and needs deep investigation before any change."
+            },
+            "probabilities": {
+              "0": 0.37,
+              "1": 0.56,
+              "2": 0.03,
+              "3": 0.04
+            }
+          },
+          "location_pinpointed": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        },
+        "usage": {
+          "input_tokens": 1653,
+          "output_tokens": 126
+        }
+      }
+    },
+    "07-missing-asset": {
+      "request_sha256": "d692461dd5209cee5cf2a92508f4e0b3c875d3149392cffb73ee8f135e905d10",
+      "result": {
+        "model": "jev-1.14.0",
+        "answers": {
+          "fault_category": {
+            "type": "choice",
+            "choice": "infrastructure",
+            "confidence": 0.99,
+            "probabilities": {
+              "automation_logic": 0.01,
+              "ui_selector_drift": 0,
+              "input_data": 0,
+              "transient": 0,
+              "infrastructure": 0.99,
+              "external_system": 0
+            }
+          },
+          "needs_code_fix": {
+            "type": "noul",
+            "noul": 0.06
+          },
+          "fix_complexity": {
+            "type": "score",
+            "score": 0.16,
+            "confidence": 0.86,
+            "legend": {
+              "0": "A single value in a single activity must change, such as one selector attribute, one timeout, one constant or one configuration key.",
+              "1": "A logic change confined to one workflow file, such as adding a null or empty check, fixing one expression, or wrapping one activity in a retry scope.",
+              "2": "Coordinated changes across several workflow files, or changes to the arguments or data passed between workflows.",
+              "3": "A redesign of error handling or of the framework, a package dependency upgrade, or a root cause that is unclear and needs deep investigation before any change."
+            },
+            "probabilities": {
+              "0": 0.91,
+              "1": 0.06,
+              "2": 0.01,
+              "3": 0.02
+            }
+          },
+          "location_pinpointed": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        },
+        "usage": {
+          "input_tokens": 1604,
+          "output_tokens": 128
+        }
+      }
+    },
+    "08-api-503-recurring": {
+      "request_sha256": "a6393d3b34de08732b00438910799472efa67296f1aa42c013f8d6014177466b",
+      "result": {
+        "model": "jev-1.14.0",
+        "answers": {
+          "fault_category": {
+            "type": "choice",
+            "choice": "external_system",
+            "confidence": 0.99,
+            "probabilities": {
+              "automation_logic": 0,
+              "ui_selector_drift": 0,
+              "input_data": 0,
+              "transient": 0.01,
+              "infrastructure": 0,
+              "external_system": 0.99
+            }
+          },
+          "needs_code_fix": {
+            "type": "noul",
+            "noul": 0.49
+          },
+          "fix_complexity": {
+            "type": "score",
+            "score": 1.18,
+            "confidence": 0.6,
+            "legend": {
+              "0": "A single value in a single activity must change, such as one selector attribute, one timeout, one constant or one configuration key.",
+              "1": "A logic change confined to one workflow file, such as adding a null or empty check, fixing one expression, or wrapping one activity in a retry scope.",
+              "2": "Coordinated changes across several workflow files, or changes to the arguments or data passed between workflows.",
+              "3": "A redesign of error handling or of the framework, a package dependency upgrade, or a root cause that is unclear and needs deep investigation before any change."
+            },
+            "probabilities": {
+              "0": 0.11,
+              "1": 0.74,
+              "2": 0.01,
+              "3": 0.14
+            }
+          },
+          "location_pinpointed": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        },
+        "usage": {
+          "input_tokens": 1576,
+          "output_tokens": 126
+        }
+      }
+    },
+    "09-unexpected-exit-code": {
+      "request_sha256": "ec1b97b0086f098522028ac3827e723ea9e5037f22a1731b5dcbade89a20d846",
+      "result": {
+        "model": "jev-1.14.0",
+        "answers": {
+          "fault_category": {
+            "type": "choice",
+            "choice": "automation_logic",
+            "confidence": 0.53,
+            "probabilities": {
+              "automation_logic": 0.61,
+              "ui_selector_drift": 0.02,
+              "input_data": 0.01,
+              "transient": 0.15,
+              "infrastructure": 0.19,
+              "external_system": 0.02
+            }
+          },
+          "needs_code_fix": {
+            "type": "noul",
+            "noul": 0.29
+          },
+          "fix_complexity": {
+            "type": "score",
+            "score": 2.76,
+            "confidence": 0.77,
+            "legend": {
+              "0": "A single value in a single activity must change, such as one selector attribute, one timeout, one constant or one configuration key.",
+              "1": "A logic change confined to one workflow file, such as adding a null or empty check, fixing one expression, or wrapping one activity in a retry scope.",
+              "2": "Coordinated changes across several workflow files, or changes to the arguments or data passed between workflows.",
+              "3": "A redesign of error handling or of the framework, a package dependency upgrade, or a root cause that is unclear and needs deep investigation before any change."
+            },
+            "probabilities": {
+              "0": 0.01,
+              "1": 0.09,
+              "2": 0.02,
+              "3": 0.88
+            }
+          },
+          "location_pinpointed": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        },
+        "usage": {
+          "input_tokens": 1503,
+          "output_tokens": 126
+        }
+      }
+    }
+  }
+}

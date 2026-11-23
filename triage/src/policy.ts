@@ -11,7 +11,7 @@ export type Tier = "sonnet" | "opus";
 
 export interface PolicyConfig {
   jevModel: string;
-  thresholds: { skipBelow: number; fixAtOrAbove: number; maxNoiseForFix: number; recurringAtLeast: number };
+  thresholds: { skipBelow: number; minNoiseForSkip: number; fixAtOrAbove: number; maxNoiseForFix: number; recurringAtLeast: number };
   noiseCategories: string[];
   escalation: { complexFromLevel: number; pComplexAtLeast: number; pinpointedBelow: number; complexityConfidenceBelow: number };
   models: Record<Tier, { id: string; maxTurns: number; budgetUsd: number }>;
@@ -87,9 +87,18 @@ export function computeSignals(a: JevAnswers, facts: Pick<DerivedFacts, "same_er
 export function chooseAction(sig: Signals, cfg: PolicyConfig): { action: Action; rule: string } {
   const t = cfg.thresholds;
   if (sig.needs_code_fix < t.skipBelow) {
-    return sig.recurring
-      ? { action: "investigate", rule: `needs_code_fix < ${t.skipBelow} but same error recurred ${sig.same_error_runs_last_24h}× in 24h` }
-      : { action: "skip", rule: `needs_code_fix < ${t.skipBelow}` };
+    if (sig.recurring) {
+      return { action: "investigate", rule: `needs_code_fix < ${t.skipBelow} but same error recurred ${sig.same_error_runs_last_24h}× in 24h` };
+    }
+    // Skipping means "nothing to fix in the code": Jev should also see a cause outside the
+    // automation. A low fix probability with no such cause is uncertainty, not noise.
+    if (sig.noise_probability < t.minNoiseForSkip) {
+      return {
+        action: "investigate",
+        rule: `needs_code_fix < ${t.skipBelow} but the category does not point to noise (${f2(sig.noise_probability)} < ${t.minNoiseForSkip})`,
+      };
+    }
+    return { action: "skip", rule: `needs_code_fix < ${t.skipBelow} and noise ≥ ${t.minNoiseForSkip}` };
   }
   if (sig.needs_code_fix >= t.fixAtOrAbove) {
     return sig.noise_probability < t.maxNoiseForFix
