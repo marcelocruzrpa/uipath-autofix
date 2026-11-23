@@ -53,6 +53,7 @@ npm install
 npm test            # unit and script tests (need bash and git; python3 or python for the XML checks)
 npm run typecheck
 TYPESAFE_API_KEY=... npm run eval -w triage -- --save eval/answers.json   # run the fixtures through Jev and record the answers
+TYPESAFE_API_KEY=... npm run eval -w triage -- --update eval/answers.json # ask Jev only about new or changed fixtures
 npm run eval -w triage -- --replay eval/answers.json                      # re-run the policy on recorded answers, no API calls
 npm run build -w triage && node triage/dist/src/cli.js --evidence <raw dir> --project <repo> --dry-run
 ```

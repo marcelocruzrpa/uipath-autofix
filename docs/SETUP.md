@@ -1,13 +1,17 @@
 # One-time setup
 
-Replace `your-github-owner` in these files before pushing:
-- `templates/project-caller.yml`
+The files name the toolkit `marcelocruzrpa/uipath-autofix`. In a fork, replace it in:
+- `templates/project-caller.yml` (the `uses:` line and `toolkit_repository`)
 - the `toolkit_repository` default in `.github/workflows/uipath-autofix.yml`
-- `PROCESS_REPO_MAP` in `worker/wrangler.jsonc`
+- `PROCESS_REPO_MAP` and `ORCHESTRATOR_BASE_URL` in `worker/wrangler.jsonc`
 
 ## 1. Toolkit repo
 
-1. Push this directory to `<owner>/uipath-jev-router` and tag `v1`: `git tag v1 && git push --tags`.
+1. Push this directory to `<owner>/uipath-autofix`. Then tag a release, plus the moving `v1` tag that callers use:
+   ```bash
+   git tag -a v1.0.0 -m "v1.0.0" && git tag v1 && git push origin v1.0.0 v1
+   ```
+   For a later release, tag `v1.x.y` the same way, then move `v1` to it: `git tag -f v1 && git push -f origin v1`. Callers pick it up on their next run.
 2. Project repos must be able to use its reusable workflow:
    - **Public repo:** nothing to do.
    - **Private repo:** go to Settings → Actions → General → Access, and allow repositories owned by the same user or organization. Then add a `TOOLKIT_TOKEN` secret (a fine-grained PAT with Contents: read on the toolkit repo) to each project repo, because the workflow checks the toolkit out to run its scripts.
@@ -17,7 +21,10 @@ Replace `your-github-owner` in these files before pushing:
 1. Go to Automation Cloud → Admin → External Applications → **Add** → *Confidential application*.
 2. Under *Application scopes → Orchestrator API Access*, add `OR.Jobs.Read`, `OR.Folders.Read`, `OR.Execution.Read`, `OR.Monitoring.Read`, `OR.Robots.Read` and `OR.Machines.Read`.
 3. Copy the **App ID** and **App Secret**.
-4. In Orchestrator, give the external application access to the folders that run the monitored processes, with a role that can view jobs and logs.
+4. In Orchestrator, give the external application access to the folders that run the monitored processes:
+   - **Role:** the built-in *Automation User* role cannot view logs. Create a folder role (for example "Autofix Reader") with **View** on Jobs, Logs, Processes, Folder Packages and Monitoring.
+   - **Assignment:** add the external application to each folder with that role, in the Orchestrator UI (folder → *Assign account/group*). `uip or users import --type DirectoryExternalApplication` returned HTTP 500 when this was set up.
+   - An external application only sees jobs through a folder: `jobs list --all-folders` fails with "A folder is required for this action". The evidence step reads the folder from the job, so no extra setting is needed.
 5. Check it locally from an empty folder:
    ```bash
    UIPATH_CLIENT_ID=... UIPATH_CLIENT_SECRET=... UIPATH_TENANT=DefaultTenant UIPATH_AUTHORITY=https://cloud.uipath.com \
@@ -55,7 +62,9 @@ uip or webhooks create "Jev Autofix" \
   --secret "$(cat .local/webhook-secret)" --output json
 ```
 
-**Confirm the payload shape once:**
+On Automation Cloud (verified on the staging cloud, 2026-11-23), Orchestrator signs deliveries in base64, and the Worker reads `Job.Key`, `Job.Info` and `Job.Release.ProcessKey`. `Job.Info` arrives as one line whose head and tail differ from what `uip or jobs get` returns, so the fault signature hashes only the exception line and the workflow frames.
+
+**Optional: confirm the payload shape** on another Orchestrator version or an Automation Suite install:
 1. Set `"LOG_PAYLOAD_SHAPE": "true"` in `wrangler.jsonc`, redeploy, and run `npx wrangler tail`.
 2. Send a test delivery with `uip or webhooks ping <webhook-key>`, then make a test job fault.
 3. Read the logged shape. It lists the payload's keys with value types and no values, and it should include `Job.Key`, `Job.Info` and `Job.Release.ProcessKey`. It also says how the `x-uipath-signature` header is encoded. The Worker accepts hex or base64, with or without `sha256=`, and a rejected delivery logs the encoding it saw.
@@ -75,7 +84,8 @@ uip or webhooks create "Jev Autofix" \
    - Commit `triage/eval/answers.json`. It holds Jev's answers with a hash of the request each one answered, and `npm test` replays it: a policy change that reroutes a fixture then fails the build without any API call.
    - To re-tune `triage/policy.config.json` or the policy code, use `--replay eval/answers.json`. The recorded answers still apply, because the request did not change.
    - A change to the questions, the state or the Jev model changes the request. The replay then reports the recording as stale: measure the change with a new live run and commit the new answers.
-   - Add fixtures from your own real faults over time. The current ones are hand-written; the log rows match what `uip or jobs logs` returns, but the error text does not come from real jobs.
+   - **Add fixtures from your own real faults.** Take the `triage` artifact of a run, scrub its identifiers, and record only the new fixture with `--update eval/answers.json`. That mode keeps every answer whose request is unchanged and asks Jev live only for new or stale fixtures, so the other fixtures keep their recorded answers.
+   - Fixture 10 is a real fault, scrubbed. Fixtures 01 to 09 are hand-written: their log rows match what `uip or jobs logs` returns, but their error text does not come from real jobs.
 2. **Replay a real fault without the webhook:** in the project repo, go to Actions → *UiPath autofix* → **Run workflow** and enter a faulted job key and process name. Use `force_action` / `force_model` to demo a specific path.
 3. **End to end:** make a job fault in Orchestrator, then watch the Worker log (`wrangler tail`), then the Actions run, then the PR or issue.
 4. **First Claude runs:**
