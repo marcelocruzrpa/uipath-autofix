@@ -136,7 +136,9 @@ jobs:
           GH_REPO: ${{ github.repository }}
           SIGNATURE: ${{ steps.jev.outputs.signature }}
 
+      # Also when triage fails: the evidence and its .stderr files are what explain why.
       - name: Upload evidence and decision
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: triage
