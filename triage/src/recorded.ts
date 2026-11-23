@@ -36,9 +36,9 @@ export function loadRecorded(path: string): RecordedAnswers {
 /** The recorded answer for a fixture; throws when there is none or it answers another request. */
 export function recordedFor(rec: RecordedAnswers, fixture: string, state: JevState, cfg: PolicyConfig): JevResult {
   const entry = Object.hasOwn(rec.fixtures, fixture) ? rec.fixtures[fixture] : undefined;
-  if (!entry) throw new Error(`no recorded answer for fixture ${fixture}: record it with a live eval (--save)`);
+  if (!entry) throw new Error(`no recorded answer for fixture ${fixture}: record it with a live eval (--update or --save)`);
   if (entry.request_sha256 !== requestHash(state, cfg)) {
-    throw new Error(`the recorded answer for ${fixture} is stale: the questions, the state or the model changed since it was recorded, so re-run the live eval (--save)`);
+    throw new Error(`the recorded answer for ${fixture} is stale: the questions, the state or the model changed since it was recorded, so re-run the live eval (--update or --save)`);
   }
   return entry.result;
 }

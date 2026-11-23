@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-11-23T11:55:06.182Z",
+  "recorded_at": "2026-11-23T13:09:40.864Z",
   "fixtures": {
     "01-selector-not-found": {
       "request_sha256": "4d2db1bd57f71b1effbdcd2cfcae53322c108291a752ad79c7ddda2a42631a4b",
@@ -447,6 +447,56 @@
         },
         "usage": {
           "input_tokens": 1503,
+          "output_tokens": 126
+        }
+      }
+    },
+    "10-real-null-ref-missing-arg": {
+      "request_sha256": "5372f5ed0f6ea4cee98e4c62356823398c0b09acf3f5e3cb9e1d2a6e9de05654",
+      "result": {
+        "model": "jev-1.14.0",
+        "answers": {
+          "fault_category": {
+            "type": "choice",
+            "choice": "automation_logic",
+            "confidence": 1,
+            "probabilities": {
+              "automation_logic": 1,
+              "ui_selector_drift": 0,
+              "input_data": 0,
+              "transient": 0,
+              "infrastructure": 0,
+              "external_system": 0
+            }
+          },
+          "needs_code_fix": {
+            "type": "noul",
+            "noul": 0.84
+          },
+          "fix_complexity": {
+            "type": "score",
+            "score": 1.06,
+            "confidence": 0.93,
+            "legend": {
+              "0": "A single value in a single activity must change, such as one selector attribute, one timeout, one constant or one configuration key.",
+              "1": "A logic change confined to one workflow file, such as adding a null or empty check, fixing one expression, or wrapping one activity in a retry scope.",
+              "2": "Coordinated changes across several workflow files, or changes to the arguments or data passed between workflows.",
+              "3": "A redesign of error handling or of the framework, a package dependency upgrade, or a root cause that is unclear and needs deep investigation before any change."
+            },
+            "probabilities": {
+              "0": 0.01,
+              "1": 0.96,
+              "2": 0,
+              "3": 0.03
+            }
+          },
+          "location_pinpointed": {
+            "type": "noul",
+            "noul": 0.99
+          }
+        },
+        "usage": {
+          "input_tokens": 2591,
           "output_tokens": 126
         }
       }

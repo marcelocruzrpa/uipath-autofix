@@ -1,0 +1,127 @@
+{
+  "description": "Real fault (AutofixDemo, 2026-11-23, identifiers scrubbed): an attended run started without in_CustomerNote, so the Assign 'Normalize Customer Note' in Main.xaml calls .Trim on Nothing and throws NullReferenceException. The first job of the process, so there is no history.",
+  "expected": {
+    "action": "fix",
+    "tier": "sonnet"
+  },
+  "now": "2026-11-23T12:04:44Z",
+  "repo": {
+    "project_found": true,
+    "workflow_files": [
+      "Main.xaml"
+    ],
+    "activities": {
+      "Process Customer Note": [
+        "Main.xaml"
+      ],
+      "Log Start": [
+        "Main.xaml"
+      ],
+      "Normalize Customer Note": [
+        "Main.xaml"
+      ],
+      "Log Normalized Note": [
+        "Main.xaml"
+      ]
+    }
+  },
+  "raw": {
+    "context": {
+      "job_key": "a1000000-0000-4000-8000-000000000010",
+      "process_key": "AutofixDemo"
+    },
+    "job": {
+      "Key": "a1000000-0000-4000-8000-000000000010",
+      "StartTime": "2026-11-23T12:03:19.237Z",
+      "EndTime": "2026-11-23T12:03:19.707Z",
+      "State": "Faulted",
+      "JobPriority": "Normal",
+      "SpecificPriorityValue": 45,
+      "Source": "Agent",
+      "SourceType": "Agent",
+      "BatchExecutionKey": "a1000000-0000-4000-8000-000000000010",
+      "Info": "Object reference not set to an instance of an object.\r\n\r\nin Main.xaml\r\n    at Assign \"Normalize Customer Note\"\r\n    at Sequence \"Process Customer Note\"\r\n    at Main \"Main\"\r\n\r\nSystem.NullReferenceException: Object reference not set to an instance of an object.\r\n   at Namespace_m0jghhguw6.Main_Expressions.Main_Expressions_TypedDataContext2_ForReadOnly.__Expr1Get()\r\n   at Namespace_m0jghhguw6.Main_Expressions.Main_Expressions_TypedDataContext2_ForReadOnly.ValueType___Expr1Get()\r\n   at Namespace_m0jghhguw6.Main_Expressions.InvokeExpression(Int32 expressionId, IList`1 locations, ActivityContext activityContext)\r\n   at Microsoft.VisualBasic.Activities.VisualBasicValue`1.Execute(CodeActivityContext context)\r\n   at System.Activities.Runtime.ActivityExecutor.ExecuteInResolutionContext[T](ActivityInstance parentInstance, Activity`1 expressionActivity)\r\n   at System.Activities.InArgument`1.TryPopulateValue(LocationEnvironment targetEnvironment, ActivityInstance activityInstance, ActivityExecutor executor)\r\n   at System.Activities.ActivityInstance.InternalTryPopulateArgumentValueOrScheduleExpression(RuntimeArgument argument, Int32 nextArgumentIndex, ActivityExecutor executor, IDictionary`2 argumentValueOverrides, Location resultLocation, Boolean isDynamicUpdate)\r\n   at System.Activities.ActivityInstance.ResolveArguments(ActivityExecutor executor, IDictionary`2 argumentValueOverrides, Location resultLocation, Int32 startIndex)\r\n   at System.Activities.Runtime.ActivityExecutor.ExecuteActivityWorkItem.ExecuteBody(ActivityExecutor executor, BookmarkManager bookmarkManager, Location resultLocation)",
+      "CreationTime": "2026-11-23T12:03:19.237Z",
+      "ReleaseName": "AutofixDemo",
+      "Type": "Attended",
+      "InputArguments": "{}",
+      "EnvironmentVariables": "",
+      "OutputArguments": "{}",
+      "HostMachineName": "ROBOT10",
+      "HasMediaRecorded": false,
+      "HasVideoRecorded": false,
+      "RuntimeType": "StudioPro",
+      "RequiresUserInteraction": false,
+      "ReleaseVersionId": 2000010,
+      "OrganizationUnitId": 3000010,
+      "FolderKey": "f1000000-0000-4000-8000-000000000010",
+      "Reference": "",
+      "ProcessType": "Process",
+      "EntryPointType": "Process",
+      "ResumeOnSameContext": false,
+      "LocalSystemAccount": "robot10",
+      "OrchestratorUserIdentity": "robot10@example.com",
+      "RemoteControlAccess": "None",
+      "LastModificationTime": "2026-11-23T12:03:19.707Z",
+      "JobError": {},
+      "ErrorCode": "Robot",
+      "TraceId": "a1000000000040008000000000000010",
+      "Id": 1000010
+    },
+    "errorLogs": [
+      {
+        "Level": "Error",
+        "TimeStamp": "2026-11-23T12:03:18.784Z",
+        "Message": "Normalize Customer Note: Object reference not set to an instance of an object.\r\nin Main.xaml\r\n    at Assign \"Normalize Customer Note\"\r\n    at Sequence \"Process Customer Note\"\r\n    at Main \"Main\"\r\n\r\n--- .NET stack trace ---\r\nSystem.NullReferenceException\r\n   at Namespace_m0jghhguw6.Main_Expressions.Main_Expressions_TypedDataContext2_ForReadOnly.__Expr1Get()\r\n   at Namespace_m0jghhguw6.Main_Expressions.Main_Expressions_TypedDataContext2_ForReadOnly.ValueType___Expr1Get()\r\n   at Namespace_m0jghhguw6.Main_Expressions.InvokeExpression(Int32 expressionId, IList`1 locations, ActivityContext activityContext)\r\n   at Microsoft.VisualBasic.Activities.VisualBasicValue`1.Execute(CodeActivityContext context)\r\n   at System.Activities.Runtime.ActivityExecutor.ExecuteInResolutionContext[T](ActivityInstance parentInstance, Activity`1 expressionActivity)\r\n   at System.Activities.InArgument`1.TryPopulateValue(LocationEnvironment targetEnvironment, ActivityInstance activityInstance, ActivityExecutor executor)\r\n   at System.Activities.ActivityInstance.InternalTryPopulateArgumentValueOrScheduleExpression(RuntimeArgument argument, Int32 nextArgumentIndex, ActivityExecutor executor, IDictionary`2 argumentValueOverrides, Location resultLocation, Boolean isDynamicUpdate)\r\n   at System.Activities.ActivityInstance.ResolveArguments(ActivityExecutor executor, IDictionary`2 argumentValueOverrides, Location resultLocation, Int32 startIndex)\r\n   at System.Activities.Runtime.ActivityExecutor.ExecuteActivityWorkItem.ExecuteBody(ActivityExecutor executor, BookmarkManager bookmarkManager, Location resultLocation)"
+      }
+    ],
+    "fatalLogs": [],
+    "logs": [
+      {
+        "Level": "Info",
+        "TimeStamp": "2026-11-23T12:03:18.808Z",
+        "Message": "AutofixDemo execution ended"
+      },
+      {
+        "Level": "Error",
+        "TimeStamp": "2026-11-23T12:03:18.784Z",
+        "Message": "Normalize Customer Note: Object reference not set to an instance of an object.\r\nin Main.xaml\r\n    at Assign \"Normalize Customer Note\"\r\n    at Sequence \"Process Customer Note\"\r\n    at Main \"Main\"\r\n\r\n--- .NET stack trace ---\r\nSystem.NullReferenceException\r\n   at Namespace_m0jghhguw6.Main_Expressions.Main_Expressions_TypedDataContext2_ForReadOnly.__Expr1Get()\r\n   at Namespace_m0jghhguw6.Main_Expressions.Main_Expressions_TypedDataContext2_ForReadOnly.ValueType___Expr1Get()\r\n   at Namespace_m0jghhguw6.Main_Expressions.InvokeExpression(Int32 expressionId, IList`1 locations, ActivityContext activityContext)\r\n   at Microsoft.VisualBasic.Activities.VisualBasicValue`1.Execute(CodeActivityContext context)\r\n   at System.Activities.Runtime.ActivityExecutor.ExecuteInResolutionContext[T](ActivityInstance parentInstance, Activity`1 expressionActivity)\r\n   at System.Activities.InArgument`1.TryPopulateValue(LocationEnvironment targetEnvironment, ActivityInstance activityInstance, ActivityExecutor executor)\r\n   at System.Activities.ActivityInstance.InternalTryPopulateArgumentValueOrScheduleExpression(RuntimeArgument argument, Int32 nextArgumentIndex, ActivityExecutor executor, IDictionary`2 argumentValueOverrides, Location resultLocation, Boolean isDynamicUpdate)\r\n   at System.Activities.ActivityInstance.ResolveArguments(ActivityExecutor executor, IDictionary`2 argumentValueOverrides, Location resultLocation, Int32 startIndex)\r\n   at System.Activities.Runtime.ActivityExecutor.ExecuteActivityWorkItem.ExecuteBody(ActivityExecutor executor, BookmarkManager bookmarkManager, Location resultLocation)"
+      },
+      {
+        "Level": "Info",
+        "TimeStamp": "2026-11-23T12:03:18.775Z",
+        "Message": "AutofixDemo started: normalizing the customer note"
+      },
+      {
+        "Level": "Info",
+        "TimeStamp": "2026-11-23T12:03:18.771Z",
+        "Message": "AutofixDemo execution started"
+      }
+    ],
+    "history": [
+      {
+        "State": "Faulted",
+        "Timestamp": "2026-11-23T12:03:19.743Z",
+        "JobId": 1000010
+      },
+      {
+        "State": "Running",
+        "Timestamp": "2026-11-23T12:03:19.283Z",
+        "JobId": 1000010
+      }
+    ],
+    "recentFaults": [
+      {
+        "Key": "a1000000-0000-4000-8000-000000000010",
+        "State": "Faulted",
+        "Info": "Object reference not set to an instance of an object.\r\n\r\nin Main.xaml\r\n    at Assign \"Normalize Customer Note\"\r\n    at Sequence \"Process Customer Note\"\r\n    at Main \"Main\"\r\n\r\nSystem.NullReferenceException: Object reference not set to an instance of an object.\r\n   at Namespace_m0jghhguw6.Main_Expressions.Main_Expressions_TypedDataContext2_ForReadOnly.__Expr1Get()\r\n   at Namespace_m0jghhguw6.Main_Expressions.Main_Expressions_TypedDataContext2_ForReadOnly.ValueType___Expr1Get()\r\n   at Namespace_m0jghhguw6.Main_Expressions.InvokeExpression(Int32 expressionId, IList`1 locations, ActivityContext activityContext)\r\n   at Microsoft.VisualBasic.Activities.VisualBasicValue`1.Execute(CodeActivityContext context)\r\n   at System.Activities.Runtime.ActivityExecutor.ExecuteInResolutionContext[T](ActivityInstance parentInstance, Activity`1 expressionActivity)\r\n   at System.Activities.InArgument`1.TryPopulateValue(LocationEnvironment targetEnvironment, ActivityInstance activityInstance, ActivityExecutor executor)\r\n   at System.Activities.ActivityInstance.InternalTryPopulateArgumentValueOrScheduleExpression(RuntimeArgument argument, Int32 nextArgumentIndex, ActivityExecutor executor, IDictionary`2 argumentValueOverrides, Location resultLocation, Boolean isDynamicUpdate)\r\n   at System.Activities.ActivityInstance.ResolveArguments(ActivityExecutor executor, IDictionary`2 argumentValueOverrides, Location resultLocation, Int32 startIndex)\r\n   at System.Activities.Runtime.ActivityExecutor.ExecuteActivityWorkItem.ExecuteBody(ActivityExecutor executor, BookmarkManager bookmarkManager, Location resultLocation)",
+        "ProcessName": null,
+        "ReleaseName": "AutofixDemo",
+        "Folder": "Shared/AutofixDemo",
+        "CreationTime": "2026-11-23T12:03:19.237Z",
+        "EndTime": "2026-11-23T12:03:19.707Z"
+      }
+    ],
+    "recentSuccess": []
+  }
+}
