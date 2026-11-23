@@ -74,14 +74,26 @@ PROCESS_NAME="$(node -e '
 ' "$OUT/jobs-get.json" 2>/dev/null)"
 NAME_FILTER="${PROCESS_NAME:-$PROCESS_KEY}"
 
+# Orchestrator refuses a jobs list across folders from an External Application ("A folder
+# is required for this action"), so list in the faulted job's own folder. Without a folder
+# key (an older job record), fall back to --all-folders, which works for a user login.
+FOLDER_KEY="$(node -e '
+  try {
+    const j = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const key = (j.Data ?? j).FolderKey;
+    if (typeof key === "string" && /^[0-9a-f-]{36}$/i.test(key)) process.stdout.write(key);
+  } catch {}
+' "$OUT/jobs-get.json" 2>/dev/null)"
+if [[ -n "$FOLDER_KEY" ]]; then SCOPE=(--folder-key "$FOLDER_KEY"); else SCOPE=(--all-folders); fi
+
 # The filter is a "contains" match, so the lists can include similarly named processes.
 # Each row carries its process name (ProcessName in the curated output, ReleaseName with
 # --all-fields) and triage keeps only the rows of this exact process. The faulted rows
 # also carry the folder name, which `jobs get` does not have.
-cap jobs-list-faulted    or jobs list --all-folders --process-name "$NAME_FILTER" --state Faulted \
+cap jobs-list-faulted    or jobs list "${SCOPE[@]}" --process-name "$NAME_FILTER" --state Faulted \
                             --created-after "$SINCE" --limit 50 --all-fields \
                             --output-filter "[].{Key: Key, State: State, Info: Info, ProcessName: ProcessName, ReleaseName: ReleaseName, Folder: OrganizationUnitFullyQualifiedName, CreationTime: CreationTime, EndTime: EndTime}"
-cap jobs-list-successful or jobs list --all-folders --process-name "$NAME_FILTER" --state Successful \
+cap jobs-list-successful or jobs list "${SCOPE[@]}" --process-name "$NAME_FILTER" --state Successful \
                             --limit 10 --sort-by "EndTime desc" \
                             --output-filter "[].{Key: Key, State: State, ProcessName: ProcessName, ReleaseName: ReleaseName, CreationTime: CreationTime, EndTime: EndTime}"
 
