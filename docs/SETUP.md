@@ -37,7 +37,7 @@ openssl rand -hex 32 > ../.local/webhook-secret  # keep this file private
 npx wrangler secret put UIPATH_WEBHOOK_SECRET    # paste the same value
 npx wrangler secret put GITHUB_DISPATCH_TOKEN    # fine-grained PAT, see below
 npx wrangler deploy
-curl https://uipath-jev-router.<you>.workers.dev/health   # {"ok":true}
+curl https://uipath-autofix.<you>.workers.dev/health   # {"ok":true}
 ```
 
 - **`GITHUB_DISPATCH_TOKEN`** is a fine-grained PAT with **Repository access** limited to the UiPath project repos, and **Permissions → Contents: Read and write**, which `repository_dispatch` requires. Nothing else.
@@ -50,7 +50,7 @@ Run this yourself. It takes the secret, so don't paste the secret into chat:
 
 ```bash
 uip or webhooks create "Jev Autofix" \
-  --url "https://uipath-jev-router.<you>.workers.dev/uipath/webhook" \
+  --url "https://uipath-autofix.<you>.workers.dev/uipath/webhook" \
   --events "job.faulted" \
   --secret "$(cat .local/webhook-secret)" --output json
 ```
